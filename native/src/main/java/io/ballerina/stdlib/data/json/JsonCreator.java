@@ -46,8 +46,8 @@ import static io.ballerina.stdlib.data.json.JsonParser.StateMachine.FIRST_FIELD_
 public class JsonCreator {
 
     // convert json[] to output array
-    static BArray finalizeArray(io.ballerina.stdlib.data.json.JsonParser.StateMachine sm, Type arrType, BArray currArr)
-            throws io.ballerina.stdlib.data.json.JsonParser.JsonParserException {
+    static BArray finalizeArray(JsonParser.StateMachine sm, Type arrType, BArray currArr)
+            throws JsonParser.JsonParserException {
         int arrTypeTag = arrType.getTag();
         BListInitialValueEntry[] initialValues = new BListInitialValueEntry[currArr.size()];
         for (int i = 0; i < currArr.size(); i++) {
@@ -59,7 +59,8 @@ public class JsonCreator {
                 } else if (arrTypeTag == TypeTags.TUPLE_TAG) {
                     curElement = finalizeArray(sm, ((TupleType) arrType).getTupleTypes().get(i), (BArray) curElement);
                 } else {
-                    throw new io.ballerina.stdlib.data.json.JsonParser.JsonParserException("invalid type in field " + getCurrentFieldPath(sm));
+                    throw new JsonParser.JsonParserException("invalid type in field " +
+                            getCurrentFieldPath(sm));
                 }
             } else {
                 if (arrTypeTag == TypeTags.ARRAY_TAG) {
@@ -67,7 +68,8 @@ public class JsonCreator {
                 } else if (arrTypeTag == TypeTags.TUPLE_TAG) {
                     curElement = JsonCreator.convertJSON(sm, curElement, ((TupleType) arrType).getTupleTypes().get(i));
                 } else {
-                    throw new io.ballerina.stdlib.data.json.JsonParser.JsonParserException("invalid type in field " + getCurrentFieldPath(sm));
+                    throw new JsonParser.JsonParserException("invalid type in field " +
+                            getCurrentFieldPath(sm));
                 }
             }
 
@@ -79,30 +81,33 @@ public class JsonCreator {
         } else if (arrTypeTag == TypeTags.TUPLE_TAG) {
             return ValueCreator.createTupleValue((TupleType) arrType, initialValues);
         } else {
-            throw new io.ballerina.stdlib.data.json.JsonParser.JsonParserException("invalid type in field " + getCurrentFieldPath(sm));
+            throw new JsonParser.JsonParserException("invalid type in field " +
+                    getCurrentFieldPath(sm));
         }
     }
 
-    static io.ballerina.stdlib.data.json.JsonParser.StateMachine.State initRootObject(io.ballerina.stdlib.data.json.JsonParser.StateMachine sm)
-            throws io.ballerina.stdlib.data.json.JsonParser.JsonParserException {
+    static JsonParser.StateMachine.State initRootObject(
+            JsonParser.StateMachine sm) 
+            throws JsonParser.JsonParserException {
         if (sm.rootRecord == null) {
-            throw new io.ballerina.stdlib.data.json.JsonParser.JsonParserException("expected record type for input type");
+            throw new JsonParser.JsonParserException("expected record type for input type");
         }
         sm.currentJsonNode = ValueCreator.createRecordValue(sm.rootRecord);
         return FIRST_FIELD_READY_STATE;
     }
 
-    static io.ballerina.stdlib.data.json.JsonParser.StateMachine.State initRootArray(io.ballerina.stdlib.data.json.JsonParser.StateMachine sm)
-            throws io.ballerina.stdlib.data.json.JsonParser.JsonParserException {
+    static JsonParser.StateMachine.State initRootArray(
+            JsonParser.StateMachine sm)
+            throws JsonParser.JsonParserException {
         if (sm.rootArray == null) {
-            throw new io.ballerina.stdlib.data.json.JsonParser.JsonParserException("expected array type for input type");
+            throw new JsonParser.JsonParserException("expected array type for input type");
         }
         sm.currentJsonNode = ValueCreator.createArrayValue(sm.definedJsonArrayType);
         return FIRST_ARRAY_ELEMENT_READY_STATE;
     }
 
-    static io.ballerina.stdlib.data.json.JsonParser.StateMachine.State initNewObject(io.ballerina.stdlib.data.json.JsonParser.StateMachine sm)
-            throws io.ballerina.stdlib.data.json.JsonParser.JsonParserException {
+    static JsonParser.StateMachine.State initNewObject(JsonParser.StateMachine sm)
+            throws JsonParser.JsonParserException {
         Type currentType = TypeUtils.getReferredType(sm.currentField.getFieldType());
         if (sm.currentJsonNode != null) {
             sm.nodesStack.push(sm.currentJsonNode);
@@ -118,12 +123,12 @@ public class JsonCreator {
             sm.restType.push(recordType.getRestFieldType());
             sm.currentJsonNode = ValueCreator.createRecordValue(recordType);
         } else {
-            throw new io.ballerina.stdlib.data.json.JsonParser.JsonParserException("invalid type in field " + getCurrentFieldPath(sm));
+            throw new JsonParser.JsonParserException("invalid type in field " + getCurrentFieldPath(sm));
         }
         return FIRST_FIELD_READY_STATE;
     }
 
-    static io.ballerina.stdlib.data.json.JsonParser.StateMachine.State initNewArray(io.ballerina.stdlib.data.json.JsonParser.StateMachine sm) {
+    static JsonParser.StateMachine.State initNewArray(JsonParser.StateMachine sm) {
         if (sm.currentJsonNode != null) {
             sm.nodesStack.push(sm.currentJsonNode);
         }
@@ -133,15 +138,15 @@ public class JsonCreator {
         return FIRST_ARRAY_ELEMENT_READY_STATE;
     }
 
-    static void setValueToJsonType(io.ballerina.stdlib.data.json.JsonParser.StateMachine sm, io.ballerina.stdlib.data.json.JsonParser.StateMachine.ValueType type, Object value,
-                                   Type currentType) throws io.ballerina.stdlib.data.json.JsonParser.JsonParserException {
+    static void setValueToJsonType(JsonParser.StateMachine sm, JsonParser.StateMachine.ValueType type, Object value,
+                                   Type currentType) throws JsonParser.JsonParserException {
         Object convertedVal;
         try {
-            convertedVal = type.equals(io.ballerina.stdlib.data.json.JsonParser.StateMachine.ValueType.ARRAY_ELEMENT) ?
+            convertedVal = type.equals(JsonParser.StateMachine.ValueType.ARRAY_ELEMENT) ?
                     value : convertJSON(sm, value, currentType);
         } catch (BError e) {
             if (sm.currentField != null) {
-                throw new io.ballerina.stdlib.data.json.JsonParser.JsonParserException("incompatible value '" + value + "' for type '" +
+                throw new JsonParser.JsonParserException("incompatible value '" + value + "' for type '" +
                         sm.currentField.getFieldType() + "' in field '" + getCurrentFieldPath(sm) + "'");
             }
             // ignore this element in projection
@@ -161,8 +166,8 @@ public class JsonCreator {
         }
     }
 
-    static Object convertJSON(io.ballerina.stdlib.data.json.JsonParser.StateMachine sm, Object value, Type type)
-            throws io.ballerina.stdlib.data.json.JsonParser.JsonParserException {
+    static Object convertJSON(JsonParser.StateMachine sm, Object value, Type type)
+            throws JsonParser.JsonParserException {
         // all types are currently allowed for readonly type fields
         if (type.getTag() == TypeTags.READONLY_TAG) {
             return value;
@@ -170,12 +175,12 @@ public class JsonCreator {
         try {
             return JsonUtils.convertJSON(value, type);
         } catch (Exception e) {
-            throw new io.ballerina.stdlib.data.json.JsonParser.JsonParserException("incompatible value '" + value + "' for type '" +
+            throw new JsonParser.JsonParserException("incompatible value '" + value + "' for type '" +
                     type + "' in field '" + getCurrentFieldPath(sm) + "'");
         }
     }
 
-    private static String getCurrentFieldPath(io.ballerina.stdlib.data.json.JsonParser.StateMachine sm) {
+    private static String getCurrentFieldPath(JsonParser.StateMachine sm) {
         Iterator<String> itr = sm.fieldNames.descendingIterator();
 
         StringBuilder result = new StringBuilder(itr.hasNext() ? itr.next() : "");

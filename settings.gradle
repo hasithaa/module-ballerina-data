@@ -13,8 +13,8 @@ plugins {
 
 rootProject.name = 'data'
 include(':checkstyle')
-include ':data-native'
-include ':data-ballerina'
+include(':data-native')
+include(':data-ballerina')
 
 project(':checkstyle').projectDir = file("build-config${File.separator}checkstyle")
 project(':data-native').projectDir = file('native')

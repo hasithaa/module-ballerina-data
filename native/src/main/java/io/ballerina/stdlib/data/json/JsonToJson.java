@@ -36,7 +36,7 @@ public class JsonToJson {
     public static Object fromJsonByteArrayWithType(BArray byteArr, BTypedesc typed) {
         byte[] bytes = byteArr.getBytes();
         try {
-            return io.ballerina.stdlib.data.json.JsonParser.parse(new InputStreamReader(new ByteArrayInputStream(bytes)), typed);
+            return JsonParser.parse(new InputStreamReader(new ByteArrayInputStream(bytes)), typed);
         } catch (Exception e) {
             return DataUtils.getJsonError(e.getMessage());
         }
@@ -47,8 +47,8 @@ public class JsonToJson {
         return null;
     }
 
-    public static Object fromJsonByteArrayWithType2(byte[] bytes, Type typed) throws io.ballerina.stdlib.data.json.JsonParser.JsonParserException {
-        return io.ballerina.stdlib.data.json.JsonParser.parse(new InputStreamReader(new ByteArrayInputStream(bytes)), typed);
+    public static Object fromJsonByteArrayWithType2(byte[] bytes, Type typed) throws JsonParser.JsonParserException {
+        return JsonParser.parse(new InputStreamReader(new ByteArrayInputStream(bytes)), typed);
     }
 
 }
