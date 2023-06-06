@@ -420,116 +420,116 @@ isolated function testJsonToJson12() returns error? {
 }
 
 
-// type AddressN record {
-//     string street;
-//     string city;
-//     int id;
-// };
+type AddressN record {
+    string street;
+    string city;
+    int id;
+};
 
-// type RN record {|
-//     int id;
-//     string name;
-//     AddressN address;
-// |};
+type RN record {|
+    int id;
+    string name;
+    AddressN address;
+|};
 
-// @test:Config {
-//     groups: ["jsonToJson"]
-// }
-// isolated function testJsonToJson13() returns error? {
-//     // json jsonContent = {
-//     //             "id": 12,
-//     //             "name": "Anne",
-//     //             "address": {
-//     //                 "street": "Main",
-//     //                 "city": "94",
-//     //                 "id": true
-//     //             }
-//     //         };
+@test:Config {
+    groups: ["jsonToJson"]
+}
+isolated function testJsonToJson13() returns error? {
+    // json jsonContent = {
+    //             "id": 12,
+    //             "name": "Anne",
+    //             "address": {
+    //                 "street": "Main",
+    //                 "city": "94",
+    //                 "id": true
+    //             }
+    //         };
 
-//     string strContent = "{\n\"id\": 12,\n\"name\": \"Anne\",\n\"address\": {\n\"street\": \"Main\",\n\"city\": \"94\",\n\"id\": true\n}\n}";
+    string strContent = "{\n\"id\": 12,\n\"name\": \"Anne\",\n\"address\": {\n\"street\": \"Main\",\n\"city\": \"94\",\n\"id\": true\n}\n}";
 
-//     byte[] bytes = strContent.toBytes();
+    byte[] bytes = strContent.toBytes();
 
-//     RN|Error x = fromJsonByteArrayWithType(bytes, RN);
-//     test:assertTrue(x is error);
-//     test:assertEquals((<error>x).message(), "incompatible value 'true' for type 'int' in field 'address.id' at line: 8 column: 0");
-// }
+    RN|Error x = fromJsonByteArrayWithType(bytes, RN);
+    test:assertTrue(x is error);
+    test:assertEquals((<error>x).message(), "incompatible value 'true' for type 'int' in field 'address.id' at line: 8 column: 0");
+}
 
-// type RN2 record {|
-//     int id;
-//     string name;
-// |};
+type RN2 record {|
+    int id;
+    string name;
+|};
 
-// @test:Config {
-//     groups: ["jsonToJson"]
-// }
-// isolated function testJsonToJson14() returns error? {
-//     json jsonContent = {
-//                 "id": 12
-//             };
+@test:Config {
+    groups: ["jsonToJsonx"]
+}
+isolated function testJsonToJson14() returns error? {
+    json jsonContent = {
+                "id": 12
+            };
 
-//     byte[] bytes = jsonContent.toString().toBytes();
+    byte[] bytes = jsonContent.toString().toBytes();
 
-//     RN2|Error x = fromJsonByteArrayWithType(bytes, RN2);
-//     test:assertTrue(x is error);
-//     test:assertEquals((<error>x).message(), "required field 'name' not present in JSON at line: 1 column: 10");
-// }
+    RN2|Error x = fromJsonByteArrayWithType(bytes, RN2);
+    test:assertTrue(x is error);
+    test:assertEquals((<error>x).message(), "required field 'name' not present in JSON at line: 1 column: 10");
+}
 
-// @test:Config {
-//     groups: ["jsonToJson"]
-// }
-// isolated function testJsonToJson15() returns error? {
-//     json jsonContent = {
-//                 "id": 12,
-//                 "name": "Anne",
-//                 "address": {
-//                     "street": "Main",
-//                     "city": "94"
-//                 }
-//             };
+@test:Config {
+    groups: ["jsonToJson"]
+}
+isolated function testJsonToJson15() returns error? {
+    json jsonContent = {
+                "id": 12,
+                "name": "Anne",
+                "address": {
+                    "street": "Main",
+                    "city": "94"
+                }
+            };
 
-//     byte[] bytes = jsonContent.toString().toBytes();
+    byte[] bytes = jsonContent.toString().toBytes();
 
-//     RN|Error x = fromJsonByteArrayWithType(bytes, RN);
-//     test:assertTrue(x is error);
-//     test:assertEquals((<error>x).message(), "required field 'id' not present in JSON at line: 1 column: 63");
-// }
+    RN|Error x = fromJsonByteArrayWithType(bytes, RN);
+    test:assertTrue(x is error);
+    test:assertEquals((<error>x).message(), "required field 'id' not present in JSON at line: 1 column: 63");
+}
 
 
-// @test:Config {
-//     groups: ["jsonToJson"]
-// }
-// isolated function testJsonToJson16() returns error? {
-//     json jsonContent = {
-//         "street": "Main",
-//         "city": "Mahar",
-//         "house": [94, [1, 3, "4"]]
-//     };
-//     byte[] bytes = jsonContent.toString().toBytes();
+@test:Config {
+    groups: ["jsonToJson"]
+}
+isolated function testJsonToJson16() returns error? {
+    json jsonContent = {
+        "street": "Main",
+        "city": "Mahar",
+        "house": [94, [1, 3, "4"]]
+    };
+    byte[] bytes = jsonContent.toString().toBytes();
 
-//     TestArr3|error x = fromJsonByteArrayWithType(bytes, TestArr3);
-//     test:assertTrue(x is error);
-// }
+    TestArr3|error x = fromJsonByteArrayWithType(bytes, TestArr3);
+    test:assertTrue(x is error);
+}
 
-// @test:Config {
-//     groups: ["jsonToJson"]
-// }
-// isolated function testJsonToJson17() returns error? {
-//     json jsonContent = {
-//                 "id": 12,
-//                 "name": "Anne",
-//                 "address": {
-//                     "id": 34,
-//                     "city": "94"
-//                 }
-//             };
+@test:Config {
+    groups: ["jsonToJson"]
+}
+isolated function testJsonToJson17() returns error? {
+    json jsonContent = {
+                "id": 12,
+                "name": "Anne",
+                "address": {
+                    "id": 34,
+                    "city": "94"
+                }
+            };
 
-//     byte[] bytes = jsonContent.toString().toBytes();
+    byte[] bytes = jsonContent.toString().toBytes();
 
-//     RN|Error x = fromJsonByteArrayWithType(bytes, RN);
-//     test:assertTrue(x is error);
-//     test:assertEquals((<error>x).message(), "required field 'street' not present in JSON at line: 1 column: 56");
-// }
+    RN|Error x = fromJsonByteArrayWithType(bytes, RN);
+    test:assertTrue(x is error);
+    test:assertEquals((<error>x).message(), "required field 'street' not present in JSON at line: 1 column: 56");
+}
 
 type intArr int[];
 
@@ -558,7 +558,7 @@ isolated function testJsonToJson19() returns error? {
 }
 
 @test:Config {
-    groups: ["jsonToJsonj2"]
+    groups: ["jsonToJson"]
 }
 isolated function testJsonToJson20() returns error? {
     json jsonContent = {
