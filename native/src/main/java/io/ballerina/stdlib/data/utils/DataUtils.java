@@ -47,7 +47,7 @@ import static io.ballerina.stdlib.data.utils.Constants.UNDERSCORE;
 /**
  * A util class for the Data package's native implementation.
  *
- * @since 1.1.0
+ * @since 0.1.0
  */
 public class DataUtils {
 

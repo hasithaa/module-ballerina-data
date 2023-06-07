@@ -51,7 +51,7 @@ import static io.ballerina.runtime.api.utils.JsonUtils.NonStringValueProcessingM
 /**
  * This class converts an JSON using projection.
  *
- * @since 3.0.0
+ * @since 0.1.0
  */
 public class JsonParser {
 

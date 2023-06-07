@@ -32,6 +32,8 @@ import java.util.HashMap;
 
 /**
  * Test class for json partial parsing.
+ *
+ * @since 0.1.0
  */
 public class JsonToJsonTest {
 

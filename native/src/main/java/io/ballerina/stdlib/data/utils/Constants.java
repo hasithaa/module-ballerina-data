@@ -26,7 +26,7 @@ import io.ballerina.runtime.api.types.MapType;
 /**
  * Constants used in Ballerina XmlData library.
  *
- * @since 1.1.0
+ * @since 0.1.0
  */
 public class Constants {
 

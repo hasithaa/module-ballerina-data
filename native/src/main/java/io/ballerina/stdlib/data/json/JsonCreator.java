@@ -41,7 +41,7 @@ import static io.ballerina.stdlib.data.json.JsonParser.StateMachine.FIRST_FIELD_
 /**
  * Create objects for partially parsed json.
  *
- * @since 3.0.0
+ * @since 0.1.0
  */
 public class JsonCreator {
 
