@@ -10,8 +10,32 @@ distribution-version = "2201.5.0"
 [[package]]
 org = "ballerina"
 name = "data"
-version = "0.1.0"
+version = "2.5.0"
+dependencies = [
+	{org = "ballerina", name = "jballerina.java"},
+	{org = "ballerina", name = "test"}
+]
 modules = [
 	{org = "ballerina", packageName = "data", moduleName = "data"}
+]
+
+[[package]]
+org = "ballerina"
+name = "jballerina.java"
+version = "0.0.0"
+modules = [
+	{org = "ballerina", packageName = "jballerina.java", moduleName = "jballerina.java"}
+]
+
+[[package]]
+org = "ballerina"
+name = "test"
+version = "0.0.0"
+scope = "testOnly"
+dependencies = [
+	{org = "ballerina", name = "jballerina.java"}
+]
+modules = [
+	{org = "ballerina", packageName = "test", moduleName = "test"}
 ]
 
