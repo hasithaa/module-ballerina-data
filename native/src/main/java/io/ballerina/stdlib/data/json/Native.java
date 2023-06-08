@@ -19,7 +19,9 @@
 package io.ballerina.stdlib.data.json;
 
 import io.ballerina.runtime.api.values.BArray;
+import io.ballerina.runtime.api.values.BMap;
 import io.ballerina.runtime.api.values.BStream;
+import io.ballerina.runtime.api.values.BString;
 import io.ballerina.runtime.api.values.BTypedesc;
 import io.ballerina.stdlib.data.utils.DataUtils;
 
@@ -31,23 +33,26 @@ import java.io.InputStreamReader;
  *
  * @since 0.1.0
  */
-public class JsonToJson {
+public class Native {
 
-    public static Object fromJsonByteArrayWithType(BArray byteArr, BTypedesc typed) {
+    public static Object fromJsonByteArrayWithType(BArray byteArr, BMap<BString, Object> map, BTypedesc typed) {
         byte[] bytes = byteArr.getBytes();
         try {
             return JsonParser.parse(new InputStreamReader(new ByteArrayInputStream(bytes)), typed);
         } catch (Exception e) {
             return DataUtils.getJsonError(e.getMessage());
         }
-
     }
 
-    public static Object fromJsonByteStreamWithType(BStream byteStream, BTypedesc typed) {
+    public static Object fromJsonByteStreamWithType(BStream byteStream, BMap<BString, Object> map, BTypedesc typed) {
         return null;
     }
 
-    public static Object fromJsonWithType(Object json, BTypedesc typed) {
+    public static Object fromJsonWithType(Object json, BMap<BString, Object> map, BTypedesc typed) {
+        return null;
+    }
+
+    public static Object fromJsonStringWithType(BString json, BMap<BString, Object> map, BTypedesc typed) {
         return null;
     }
 }

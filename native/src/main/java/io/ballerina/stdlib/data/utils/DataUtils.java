@@ -51,7 +51,7 @@ import static io.ballerina.stdlib.data.utils.Constants.UNDERSCORE;
  */
 public class DataUtils {
 
-    private static final String ERROR = "Error";
+    private static final String ERROR = "ConversionError";
     private static final String NAME = "Name";
     private static final String ATTRIBUTE_PREFIX = "attribute_";
     private static final String VALUE = "value";

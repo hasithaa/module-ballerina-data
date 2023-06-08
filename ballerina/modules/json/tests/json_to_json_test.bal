@@ -42,7 +42,7 @@ isolated function testJsonToJson1() returns error? {
 
     byte[] bytes = jsonContent.toString().toBytes();
 
-    R x = check fromJsonByteArrayWithType(bytes, R);
+    R x = check fromJsonByteArrayWithType(bytes);
     test:assertEquals(x.id, 2);
     test:assertEquals(x.name, "Anne");
     test:assertEquals(x.address.street, "Main");
@@ -85,7 +85,7 @@ isolated function testJsonToJson2() returns error? {
 
     byte[] bytes = jsonContent.toString().toBytes();
 
-    Person x = check fromJsonByteArrayWithType(bytes, Person);
+    Person x = check fromJsonByteArrayWithType(bytes);
     test:assertEquals(x.name, "John");
     test:assertEquals(x.age, 30);
     test:assertEquals(x.address.street, "123 Main St");
@@ -137,7 +137,7 @@ isolated function testJsonToJson3() returns error? {
 
     byte[] bytes = jsonContent.toString().toBytes();
 
-    Book x = check fromJsonByteArrayWithType(bytes, Book);
+    Book x = check fromJsonByteArrayWithType(bytes);
     test:assertEquals(x.title, "To Kill a Mockingbird");
     test:assertEquals(x.author.name, "Harper Lee");
     test:assertEquals(x.author.birthdate, "1926-04-28");
@@ -171,7 +171,7 @@ isolated function testJsonToJson4() returns error? {
 
     byte[] bytes = jsonContent.toString().toBytes();
 
-    School x = check fromJsonByteArrayWithType(bytes, School);
+    School x = check fromJsonByteArrayWithType(bytes);
     test:assertEquals(x.name, "School Twelve");
     test:assertEquals(x.number, 12);
     test:assertEquals(x.flag, true);
@@ -199,7 +199,7 @@ function testJsonToJson5() returns error? {
     };
     byte[] bytes = jsonContent.toString().toBytes();
 
-    TestRecord x = check fromJsonByteArrayWithType(bytes, TestRecord);
+    TestRecord x = check fromJsonByteArrayWithType(bytes);
     test:assertEquals(x.intValue, 10);
     test:assertEquals(x.floatValue, 10.5f);
     test:assertEquals(x.stringValue, "test");
@@ -262,7 +262,7 @@ function testJsonToJson6() returns error? {
     };
     byte[] bytes = jsonContent.toString().toBytes();
 
-    Class x = check fromJsonByteArrayWithType(bytes, Class);
+    Class x = check fromJsonByteArrayWithType(bytes);
     test:assertEquals(x.id, 1);
     test:assertEquals(x.name, "Class A");
     test:assertEquals(x.student.id, 2);
@@ -298,7 +298,7 @@ function testJsonToJson7() returns error? {
 
     byte[] bytes = jsonContent.toString().toBytes();
 
-    TestRecord2 x = check fromJsonByteArrayWithType(bytes, TestRecord2);
+    TestRecord2 x = check fromJsonByteArrayWithType(bytes);
     test:assertEquals(x.intValue, 10);
     test:assertEquals(x.nested1.intValue, 5);
 }
@@ -320,7 +320,7 @@ isolated function testJsonToJson8() returns error? {
 
     byte[] bytes = jsonContent.toString().toBytes();
 
-    TestR x = check fromJsonByteArrayWithType(bytes, TestR);
+    TestR x = check fromJsonByteArrayWithType(bytes);
     test:assertEquals(x.street, "Main");
     test:assertEquals(x.city, "Mahar");
 }
@@ -342,7 +342,7 @@ isolated function testJsonToJson9() returns error? {
     };
     byte[] bytes = jsonContent.toString().toBytes();
 
-    TestArr1 x = check fromJsonByteArrayWithType(bytes, TestArr1);
+    TestArr1 x = check fromJsonByteArrayWithType(bytes);
     test:assertEquals(x.street, "Main");
     test:assertEquals(x.city, "Mahar");
     test:assertEquals(x.houses, [94, 95, 96]);
@@ -365,7 +365,7 @@ isolated function testJsonToJson10() returns error? {
     };
     byte[] bytes = jsonContent.toString().toBytes();
 
-    TestArr2 x = check fromJsonByteArrayWithType(bytes, TestArr2);
+    TestArr2 x = check fromJsonByteArrayWithType(bytes);
     test:assertEquals(x.street, "Main");
     test:assertEquals(x.city, 11);
     test:assertEquals(x.house, [94, "Gedara"]);
@@ -388,7 +388,7 @@ isolated function testJsonToJson11() returns error? {
     };
     byte[] bytes = jsonContent.toString().toBytes();
 
-    TestArr3 x = check fromJsonByteArrayWithType(bytes, TestArr3);
+    TestArr3 x = check fromJsonByteArrayWithType(bytes);
     test:assertEquals(x.street, "Main");
     test:assertEquals(x.city, "Mahar");
     test:assertEquals(x.house, [94, [1, 2, 3]]);
@@ -414,7 +414,7 @@ isolated function testJsonToJson12() returns error? {
     };
     byte[] bytes = jsonContent.toString().toBytes();
 
-    TestJson x = check fromJsonByteArrayWithType(bytes, TestJson);
+    TestJson x = check fromJsonByteArrayWithType(bytes);
     test:assertEquals(x.street, "Main");
     test:assertEquals(x.city, {"name": "Mahar", "code": 94});
 }
@@ -450,7 +450,7 @@ isolated function testJsonToJson13() returns error? {
 
     byte[] bytes = strContent.toBytes();
 
-    RN|Error x = fromJsonByteArrayWithType(bytes, RN);
+    RN|ConversionError x = fromJsonByteArrayWithType(bytes);
     test:assertTrue(x is error);
     test:assertEquals((<error>x).message(), "incompatible value 'true' for type 'int' in field 'address.id' at line: 8 column: 0");
 }
@@ -470,7 +470,7 @@ isolated function testJsonToJson14() returns error? {
 
     byte[] bytes = jsonContent.toString().toBytes();
 
-    RN2|Error x = fromJsonByteArrayWithType(bytes, RN2);
+    RN2|ConversionError x = fromJsonByteArrayWithType(bytes);
     test:assertTrue(x is error);
     test:assertEquals((<error>x).message(), "required field 'name' not present in JSON at line: 1 column: 10");
 }
@@ -490,7 +490,7 @@ isolated function testJsonToJson15() returns error? {
 
     byte[] bytes = jsonContent.toString().toBytes();
 
-    RN|Error x = fromJsonByteArrayWithType(bytes, RN);
+    RN|ConversionError x = fromJsonByteArrayWithType(bytes);
     test:assertTrue(x is error);
     test:assertEquals((<error>x).message(), "required field 'id' not present in JSON at line: 1 column: 63");
 }
@@ -507,7 +507,7 @@ isolated function testJsonToJson16() returns error? {
     };
     byte[] bytes = jsonContent.toString().toBytes();
 
-    TestArr3|error x = fromJsonByteArrayWithType(bytes, TestArr3);
+    TestArr3|error x = fromJsonByteArrayWithType(bytes);
     test:assertTrue(x is error);
 }
 
@@ -526,7 +526,7 @@ isolated function testJsonToJson17() returns error? {
 
     byte[] bytes = jsonContent.toString().toBytes();
 
-    RN|Error x = fromJsonByteArrayWithType(bytes, RN);
+    RN|ConversionError x = fromJsonByteArrayWithType(bytes);
     test:assertTrue(x is error);
     test:assertEquals((<error>x).message(), "required field 'street' not present in JSON at line: 1 column: 56");
 }
@@ -540,7 +540,7 @@ isolated function testJsonToJson18() returns error? {
     json jsonContent = [1, 2, 3];
     byte[] bytes = jsonContent.toString().toBytes();
 
-    intArr x = check fromJsonByteArrayWithType(bytes, intArr);
+    intArr x = check fromJsonByteArrayWithType(bytes);
     test:assertEquals(x, [1, 2, 3]);
 }
 
@@ -553,7 +553,7 @@ isolated function testJsonToJson19() returns error? {
     json jsonContent = [1, "abc", [3, 4.0]];
     byte[] bytes = jsonContent.toString().toBytes();
 
-    tup|Error x = check fromJsonByteArrayWithType(bytes, tup);
+    tup|ConversionError x = check fromJsonByteArrayWithType(bytes);
     test:assertEquals(x, [1, "abc", [3, 4.0]]);
 }
 
@@ -575,7 +575,7 @@ isolated function testJsonToJson20() returns error? {
     };
     byte[] bytes = jsonContent.toString().toBytes();
 
-    TestJson x = check fromJsonByteArrayWithType(bytes, TestJson);
+    TestJson x = check fromJsonByteArrayWithType(bytes);
     test:assertEquals(x.street, "Main");
     test:assertEquals(x.city,{"name": "Mahar", "code": 94, "internal": {"id": 12, "agent": "Anne"}});
 }
@@ -593,7 +593,7 @@ isolated function debugFunction() returns error? {
     json jsonContent = "{\"id\": 12, \"color\":true, \"name\": \"Anne\", \"address\": 34}";
     byte[] bytes = jsonContent.toString().toBytes();
     
-    DebugType x = check fromJsonByteArrayWithType(bytes, DebugType);
+    DebugType x = check fromJsonByteArrayWithType(bytes);
     test:assertEquals(x.id, 12);
     test:assertEquals(x["address"], 34);
     test:assertEquals(x["name"], null);
