@@ -1,0 +1,7 @@
+"Company Information","","","Sales Data","",""
+"Company Name","Company ID","Location","Product","Units Sold","Sale Date"
+"Company A", "001", "New York", "Widget A", "120", "2023-01-20"
+"Company B", "002", "Los Angeles", "Widget B", "230", "2023-01-22"
+"Company A", "001", "Chicago", "Widget C", "300", "2023-01-23"
+"Company B", "002", "San Francisco", "Widget D", "210", "2023-01-24"
+"Company C", "003", "New York", "Widget A", "450", "2023-01-25"
