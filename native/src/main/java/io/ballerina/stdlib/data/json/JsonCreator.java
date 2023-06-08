@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2023, WSO2 LLC. (https://www.wso2.com).
  *
  * WSO2 LLC. licenses this file to you under the Apache License,
@@ -15,6 +15,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package io.ballerina.stdlib.data.json;
 
 import io.ballerina.runtime.api.TypeTags;

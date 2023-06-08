@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2023, WSO2 LLC. (https://www.wso2.com).
  *
  * WSO2 LLC. licenses this file to you under the Apache License,
@@ -15,6 +15,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package io.ballerina.stdlib.data.json;
 
 import io.ballerina.runtime.api.Module;
@@ -67,8 +68,5 @@ public class JsonToJsonTest {
         RecordType r3 = TypeCreator.createRecordType("Rec2", new Module("usk", "tst"), 0,
                 fieldMap3, PredefinedTypes.TYPE_STRING, false, 0);
 
-        String str2 = "{\"name\":\"Ushira\", \"age\":[94, [\"home\", \"sweet\", \"home\"]]}";
-        Object out = io.ballerina.stdlib.data.json.JsonToJson.fromJsonByteArrayWithType2(str.getBytes(), r);
-        String f = "dd";
     }
 }

@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2023, WSO2 LLC. (https://www.wso2.com).
  *
  * WSO2 LLC. licenses this file to you under the Apache License,
@@ -15,9 +15,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package io.ballerina.stdlib.data.json;
 
-import io.ballerina.runtime.api.types.Type;
 import io.ballerina.runtime.api.values.BArray;
 import io.ballerina.runtime.api.values.BStream;
 import io.ballerina.runtime.api.values.BTypedesc;
@@ -43,12 +43,11 @@ public class JsonToJson {
 
     }
 
-    public static Object fromJsonByteArrayStreamWithType(BStream byteStream, BTypedesc typed) {
+    public static Object fromJsonByteStreamWithType(BStream byteStream, BTypedesc typed) {
         return null;
     }
 
-    public static Object fromJsonByteArrayWithType2(byte[] bytes, Type typed) throws JsonParser.JsonParserException {
-        return JsonParser.parse(new InputStreamReader(new ByteArrayInputStream(bytes)), typed);
+    public static Object fromJsonWithType(Object json, BTypedesc typed) {
+        return null;
     }
-
 }
