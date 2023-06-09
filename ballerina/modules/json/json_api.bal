@@ -14,6 +14,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import data.csv;
 import ballerina/jballerina.java;
 
 # A Parse a json value with projection
@@ -52,11 +53,32 @@ public isolated function fromJsonByteArrayWithType(byte[] v, Options options = {
 public isolated function fromJsonByteStreamWithType(stream<byte[], error?> v, Options options = {}, typedesc<any> t = <>)
         returns t|ConversionError = @java:Method {'class: "io.ballerina.stdlib.data.json.Native"} external;
 
-// ToJsonString
+// ==== Other Type Conversion ====
+
+// toString()
+// `ballerina/lang.value:toString` can be used to convert a JSON value to a String.
+
+// toJsonString()
 // `ballerina/lang.value:toJsonString` can be used to convert a JSON value to a JSON String.
+
+// TODO : To complete the flow, do we need to provide proxies for the above two functions?
+
+// To XML
+public isolated function toXml(json v, XmlOptions options = {}) 
+        returns xml|ConversionError = @java:Method {'class: "io.ballerina.stdlib.data.json.Native"} external;
+
+public isolated function toCSV(json v, csv:FromOptions options = {}) 
+        returns csv:Csv|ConversionError = @java:Method {'class: "io.ballerina.stdlib.data.json.Native"} external;
+
+// TODO : Add toml and yaml APIs.
 
 public type Options record {
     typedesc<float|decimal> numericPreference = decimal;
+};
+
+// Move this to parent module
+public type XmlOptions record {
+        // TODO : Complete this.
 };
 
 # Describes Conversion Error.

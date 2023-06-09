@@ -32,7 +32,7 @@ public type Row Cell[];
 # Empty fields are often interpreted as `()` or an empty string `""` 
 # depending on the configuration passed.
 #
-public type Cell string|int|float|decimal|boolean|();
+public type Cell string|int|float|decimal|boolean|(); // Alternative name - Scalar
 
 // Optional Representation
 
