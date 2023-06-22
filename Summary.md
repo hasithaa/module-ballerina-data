@@ -296,6 +296,85 @@ Each approach has its advantages and disadvantages. It's essential to consider t
 
 ### XML
 
+When converting back to XML, We will need additional information such as xmlns, attributes, etc.
+
+#### Option 1: XML Schema Support
+
+Since XML schema it self is an XML document, We can use read it and generate the Ballerina canonical XML representation.
+`toXML` and `toXmlXXX` functions take an XML Schema as an additional parameter, which will be used to generate the XML document.
+
+`ballerina/data.xml` module defines a `Schema` record type, which can be used to represent an XML Schema. 
+Also, this can be used for direct `json` -> `xml` conversion as well.
+
+One disadvantage of this approach is that XML Schema is not available for all XML documents.
+ So opinionated conversion has to be done for the default case. Also XML Schema can be complex, supporting all the features might be difficult.
+
+Example:
+```ballerina
+type Schema record {
+    Element[]? element;
+    ComplexType[]? complexType;
+    AttributeGroup[]? attributeGroup;
+    SimpleType[]? simpleType;
+};
+
+type Element record {
+    string name;
+    string? 'type;
+    ComplexType? complexType;
+    SimpleType? simpleType;
+};
+
+type ComplexType record {
+    string? name;
+    Sequence? sequence;
+    Attribute[]? attribute;
+    AttributeGroup? attributeGroup;
+};
+
+type Sequence record {
+    Element[]? element;
+};
+
+type Attribute record {
+    string name;
+    string 'type;
+    string? use;
+};
+
+type AttributeGroup record {
+    string name;
+    Attribute[] attribute;
+};
+
+type SimpleType record {
+    string name;
+    Restriction? restriction;
+};
+
+type Restriction record {
+    string base;
+    MaxLength? maxLength;
+    MinLength? minLength;
+};
+
+type MaxLength record {
+    int value;
+};
+
+type MinLength record {
+    int value;
+};
+```
+
+#### Option 2: Annotate the Record Type with XML Information
+
+This approach is similar to the first approach, but instead of using an XML Schema, we can annotate the record type with XML information.
+
+Disadvantages:
+* Only Works with Cannibalized XML records. 
+* Requires additional information to be provided by the user as annotation, which is cumbersome, especially for large XML documents.
+
 # Appendix
 
 ## Existing Conversions
