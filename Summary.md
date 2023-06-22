@@ -23,7 +23,7 @@ Below are the supported string data formats, along with the corresponding base t
 
 ## Supported Basic Types
 
-Ballerina `anydata` values include formats such as `json`, `xml`, records, arrays, maps, and more. 
+Any Ballerina `anydata` values including formats such as `json`, `xml`, records, arrays, maps, and more. 
 
 **Note**:
 Initially, we will not support all `anydata` values, only a select few basic types.
@@ -32,7 +32,7 @@ Initially, we will not support all `anydata` values, only a select few basic typ
 
 # Design 
 
-The core idea of our design is to streamline the conversion process between different string data formats.
+The core idea of the design is to streamline the conversion process between different string data formats.
  By using a canonical representation based on the Record type,
   we can represent most data types and use this representation to facilitate conversions between various data formats,
    including different `anydata` basic types.
@@ -45,8 +45,9 @@ graph LR
     A["Source `byte[]`|`string`|`stream &amp;lt;byte[], error&gt;`"] -- "fromXYWithType" --> B["Record Type (R1)"]
     B -- "Data Mapper" -.-> C["Another Record Type (Rx)"] 
     C -- "toXY" --> D["Target `byte[]`|`string`|`stream &amp;lt;byte[], error&gt;`"]
-    ST["Source Type `xml`, `json`, list, mapping, etc."] -- "fromXYWithType" --> B
-    C -- "toXYWithType" --> TT["Target Type `xml`, `json`, list, mapping, etc.`"]
+    ST["Source Type `xml`, `json`, list, mapping, etc."] -- "fromYWithType" --> B
+    C -- "toY" --> TT["Target Type `xml`, `json`, list, mapping, etc.`"]
+    ST -- "fromYWithType" --> TT
 
     subgraph "Source Data Format (JSON, XML, CSV, etc.)"
     A
@@ -94,6 +95,96 @@ isolated function fromStringWithType(string, typedesc<T> t = <>) returns T|error
 * A numeric-string value represents a value that belongs to one of the basic types: int, float, or decimal. 
   As with literals, we need to apply a similar algorithm to determine the type of the value.
 * Most basic types provide the `fromString` langlib function. The semantics of this function are the same as those. 
+
+### `fromXYWithType`
+
+Converts a string data format value to the canonical form with projection. These functions follows following pattern. 
+
+```
+from <StringDataFormat> <Source> WithType
+```
+* ballerina/data.json, Here `T` is a subtype of `record {|anydata...;|}`
+  * `fromJsonStringWithType (string src, Options options = {}, typedesc<T> t = <>) returns T|error`
+  * `fromJsonBytesWithType (byte[] src, Options options = {}, typedesc<T> t = <>) returns T|error`
+  * `fromJsonStreamWithType (stream<byte[] src, error>, Options options = {}, typedesc<T> t = <>) returns T|error`
+* ballerina/data.xml, Here `T` is defined in the xml module.
+  * `fromXmlStringWithType (string src, Options options = {}, typedesc<T> t = <>) returns T|error`
+  * `fromXmlBytesWithType (byte[] src, Options options = {}, typedesc<T> t = <>) returns T|error`
+  * `fromXmlStreamWithType (stream<byte[] src, error>, Options options = {}, typedesc<T> t = <>) returns T|error`
+* ballerina/data.csv, Here `T` is defined in the csv module.
+  * `fromCsvStringWithType (string src, Options options = {}, typedesc<T> t = <>) returns T|error`
+  * `fromCsvBytesWithType (byte[] src, Options options = {}, typedesc<T> t = <>) returns T|error`
+  * `fromCsvStreamWithType (stream<byte[], error> src, Options options = {}, typedesc<T> t = <>) returns T|error`
+
+### `fromYWithType`
+
+Converts a Ballerina value to the canonical form with projection or to a different Basic Type.
+ These functions follows following pattern.
+
+```
+from <Source> WithType
+```
+
+* ballerina/data.json
+  * `fromXmlWithType(xml src, Options options = {}, typedesc<T> t = <>) returns T|error`
+  * `fromJsonWithType(json src, Options options = {}, typedesc<T> t = <>) returns T|error`
+  * `fromRecordWithType(record {|anydata...;|} src, Options options = {}, typedesc<T> t = <>) returns T|error`
+  * `fromTableWithType(table<anydata> src, Options options = {}, typedesc<T> t = <>) returns T|error`
+* ballerina/data.xml
+  * `fromJsonWithType(json src, Options options = {}, typedesc<T> t = <>) returns T|error`
+  * `fromRecordWithType(record {|anydata...;|} src, Options options = {}, typedesc<T> t = <>) returns T|error`
+* ballerina/data.csv
+  * `fromJsonWithType(json src, Options options = {}, typedesc<T> t = <>) returns T|error`
+  * `fromRecordWithType(record {|anydata...;|} src, Options options = {}, typedesc<T> t = <>) returns T|error`
+
+**Note**:
+As we are dealing with two different basic types, compatibility issues can be expected.
+ Each function will strive to optimally convert the value to the target type. Otherwise, an error will be returned.
+
+### `toXY`
+
+Converts a canonical value to a string data format value for persistence. 
+```
+to <StringDataFormat> <Target>
+```
+
+* ballerina/data.json
+  * `toJsonString (T src, Options options = {}) returns string|error`
+  * `toJsonBytes (T src, Options options = {}) returns byte[]|error`  - Will be added later
+  * `toJsonStream (T src, Options options = {}) returns stream<byte[], error>|error` - Will be added later
+* ballerina/data.xml
+  * `toXmlString (T src, Options options = {}) returns string|error`
+  * `toXmlBytes (T src, Options options = {}) returns byte[]|error` - Will be added later
+  * `toXmlStream (T src, Options options = {}) returns stream<byte[], error>|error` - Will be added later
+* ballerina/data.csv
+  * `toCsvString (T src, Options options = {}) returns string|error`
+  * `toCsvBytes (T src, Options options = {}) returns byte[]|error` - Will be added later
+  * `toCsvStream (T src, Options options = {}) returns stream<byte[], error>|error` - Will be added later
+
+
+**Note**:
+Each StringDataFormat module will take additional Options to control the output. 
+For example XML module will take `xml:Schema` to control the output.
+
+### `toY`
+
+Converts a canonical value to a different ballerina value. 
+```
+to <Target> [WithType]
+```
+
+* ballerina/data.json
+  * `toXml (T src, Options options = {}) returns xml|error`
+    * Will take Optional `xml:Schema` value to control the output.
+  * `toRecord (T src, Options options = {}, typedesc<record{anydata...;}> t = <>) returns T|error`
+  * `toTable (T src, Options options = {}) returns table<anydata>|error`
+    * Only works for JSON Arrays. Otherwise, it will return an error.
+* ballerina/data.xml
+  * `toJson (T src, Options options = {}) returns json|error`
+  * `toRecord (T src, Options options = {}, typedesc<record{anydata...;}> t = <>) returns T|error`
+* ballerina/data.csv
+  * `toJson (T src, Options options = {}) returns json|error`
+  * `toRecord (T src, Options options = {}, typedesc<record{anydata...;}> t = <>) returns T|error`
 
 ### Additional Functions
 
@@ -185,16 +276,27 @@ When `P` is Closed:
   - Same as when `P` is Open, except that unspecified fields will be ignored.
 
 
-## To String Data Type
+## Modules
 
-A Record can be converted to a String Data Type, if it is a subtype of `P`.
+Design Choices:
+* Having separate functions for each string data module.
+  * Scalability: This approach is more scalable as new string data formats can be added without affecting existing modules.
+  * Function call syntax would be: `Person p = 'json:fromJsonStringWithType("{name: "John", age: 30}");`
+    * This introduces redundancy with the prefix, but it is required for consistency with other langlib functions.
+    * Another option is to omit the `<StringDataFormat>` part, which would make it `fromStringWithType`.
+  * This approach, however, leads to a dependency problem:
+    * When providing conversion between two different data types (i.e., XML <-> JSON, JSON <-> CSV, TOML <-> YAML, etc.), some base type information needs to be shared.
+    * This results in a circular dependency problem. For example, the `ballerina/data.json` module would have to depend on the `ballerina/data.xml` module and vice versa.
+* Another option is to have a single module containing all the functions, i.e., `ballerina/data`.
+  * Function call syntax would be: `Person p = 'data:fromJsonStringWithType("{name: "John", age: 30}");` 
 
-### JSON
+Each approach has its advantages and disadvantages. It's essential to consider the project's scope and future scalability when making this decision.
 
-
+## Converting Back to String Data Formats - WIP
 
 ### XML
 
+# Appendix
 
 ## Existing Conversions
 
