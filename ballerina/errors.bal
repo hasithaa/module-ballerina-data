@@ -14,5 +14,24 @@
 // specific language governing permissions and limitations
 // under the License.
 
+# Describes Conversion Error.
+public type ConversionError distinct error<record {|
 
+    # The reason for the conversion error
+    string reason;
 
+    # Expected Value
+    string expected?;
+
+    # Actual Value
+    string actual?;
+
+    # The position of the conversion error occurred
+    record {|
+        # The line number of the conversion error
+        int line;
+
+        # The column number of the conversion error
+        int column;
+    |} position?;
+|}>;

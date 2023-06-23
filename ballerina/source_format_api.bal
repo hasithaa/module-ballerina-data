@@ -14,5 +14,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
+// import ballerina/jballerina.java;
 
-
+// public isolated function fromXmlStringWithType(string data, typedesc<record {}> typed = <>)
+//         returns typed|ConversionError = @java:Method {'class: "io.ballerina.stdlib.data.xml.Native"} external;

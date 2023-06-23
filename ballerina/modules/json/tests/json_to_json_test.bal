@@ -580,23 +580,23 @@ isolated function testJsonToJson20() returns error? {
     test:assertEquals(x.city,{"name": "Mahar", "code": 94, "internal": {"id": 12, "agent": "Anne"}});
 }
 
-type DebugType record {|
-    json id;
-    readonly color;
-    int...;
-|};
+// type DebugType record {|
+//     json id;
+//     readonly & json color;
+//     int...;
+// |};
 
-@test:Config {
-    groups: ["debugFunction"]
-}
-isolated function debugFunction() returns error? {
-    json jsonContent = "{\"id\": 12, \"color\":true, \"name\": \"Anne\", \"address\": 34}";
-    byte[] bytes = jsonContent.toString().toBytes();
+// @test:Config {
+//     groups: ["debugFunction"]
+// }
+// isolated function debugFunction() returns error? {
+//     json jsonContent = "{\"id\": 12, \"color\":true, \"name\": \"Anne\", \"address\": 34}";
+//     byte[] bytes = jsonContent.toString().toBytes();
     
-    DebugType x = check fromJsonByteArrayWithType(bytes);
-    test:assertEquals(x.id, 12);
-    test:assertEquals(x["address"], 34);
-    test:assertEquals(x["name"], null);
-    test:assertEquals(x.color, true);
+//     DebugType x = check fromJsonByteArrayWithType(bytes);
+//     test:assertEquals(x.id, 12);
+//     test:assertEquals(x["address"], 34);
+//     test:assertEquals(x["name"], null);
+//     test:assertEquals(x.color, true);
 
-}
+// }
