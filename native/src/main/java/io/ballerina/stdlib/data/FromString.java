@@ -20,9 +20,11 @@ package io.ballerina.stdlib.data;
 
 import io.ballerina.runtime.api.TypeTags;
 import io.ballerina.runtime.api.creators.ValueCreator;
+import io.ballerina.runtime.api.types.ReferenceType;
 import io.ballerina.runtime.api.types.Type;
 import io.ballerina.runtime.api.types.UnionType;
 import io.ballerina.runtime.api.values.BDecimal;
+import io.ballerina.runtime.api.values.BError;
 import io.ballerina.runtime.api.values.BString;
 import io.ballerina.runtime.api.values.BTypedesc;
 import io.ballerina.stdlib.data.utils.DataUtils;
@@ -43,7 +45,7 @@ public class FromString {
         try {
             return fromStringWithType(string, expType);
         } catch (NumberFormatException e) {
-            return DataUtils.getError("'string' value '" + string + "' cannot be converted to '" + expType + "'");
+            return returnError(string.getValue(), expType.toString());
         }
     }
 
@@ -65,8 +67,10 @@ public class FromString {
                 return stringToNull(value);
             case TypeTags.UNION_TAG:
                 return stringToUnion(string, (UnionType) expType);
+            case TypeTags.TYPE_REFERENCED_TYPE_TAG:
+                return fromStringWithType(string, ((ReferenceType) expType).getReferredType());
             default:
-                throw new IllegalStateException("Invalid type: " + expType);
+                return returnError(value, expType.toString());
         }
     }
 
@@ -85,20 +89,20 @@ public class FromString {
         return ValueCreator.createDecimalValue(value);
     }
     
-    private static Boolean stringToBoolean(String value) throws NumberFormatException {
+    private static Object stringToBoolean(String value) throws NumberFormatException {
         if ("true".equalsIgnoreCase(value) || "1".equalsIgnoreCase(value)) {
             return true;
         } else if ("false".equalsIgnoreCase(value) || "0".equalsIgnoreCase(value)) {
             return false;
         }
-        throw new NumberFormatException();
+        return returnError(value, "boolean");
     }
 
     private static Object stringToNull(String value) throws NumberFormatException {
         if ("null".equalsIgnoreCase(value) || "()".equalsIgnoreCase(value)) {
             return null;
         }
-        throw new NumberFormatException();
+        return returnError(value, "()");
     }
 
     private static Object stringToUnion(BString string, UnionType expType) throws NumberFormatException {
@@ -111,6 +115,8 @@ public class FromString {
                 if (result instanceof BString) {
                     isStringExpType = true;
                     continue;
+                } else if (result instanceof BError) {
+                    continue;
                 }
                 return result;
             } catch (Exception e) {
@@ -121,7 +127,7 @@ public class FromString {
         if (isStringExpType) {
             return string;
         }
-        throw new NumberFormatException();
+        return returnError(string.getValue(), expType.toString());
     }
 
     private static boolean hasFloatOrDecimalLiteralSuffix(String value) {
@@ -139,5 +145,9 @@ public class FromString {
             default:
                 return false;
         }
+    }
+
+    private static BError returnError(String string, String expType) {
+        return DataUtils.getError("'string' value '" + string + "' cannot be converted to '" + expType + "'");
     }
 }

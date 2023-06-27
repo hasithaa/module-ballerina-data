@@ -18,6 +18,8 @@ import ballerina/test;
 
 // Possitive tests for fromStringWithType() function.
 
+type INT int;
+
 @test:Config
 isolated function testStringToInt() returns error? {
     int intValue1 = check fromStringWithType("1");
@@ -25,7 +27,12 @@ isolated function testStringToInt() returns error? {
 
     int intValue2 = check fromStringWithType("-1000");
     test:assertEquals(intValue2, -1000);
+
+    INT intValue3 = check fromStringWithType("1");
+    test:assertEquals(intValue3, 1);
 }
+
+type Float float;
 
 @test:Config
 isolated function testStringToFloat() returns error? {
@@ -34,7 +41,12 @@ isolated function testStringToFloat() returns error? {
 
     float floatValue2 = check fromStringWithType("-1000.123");
     test:assertEquals(floatValue2, -1000.123);
+
+    Float floatValue3 = check fromStringWithType("2.012");
+    test:assertEquals(floatValue3, 2.012);
 }
+
+type Decimal decimal;
 
 @test:Config
 isolated function testStringToDecimal() returns error? {
@@ -43,7 +55,12 @@ isolated function testStringToDecimal() returns error? {
 
     decimal decimalValue2 = check fromStringWithType("-1000.123");
     test:assertEquals(decimalValue2, -1000.123d);
+
+    Decimal decimalValue3 = check fromStringWithType("2.012");
+    test:assertEquals(decimalValue3, 2.012d);
 }
+
+type Boolean boolean;
 
 @test:Config
 isolated function testStringToBoolean() returns error? {
@@ -64,7 +81,12 @@ isolated function testStringToBoolean() returns error? {
 
     boolean booleanValue6 = check fromStringWithType("FALSE");
     test:assertFalse(booleanValue6);
+
+    Boolean booleanValue7 = check fromStringWithType("true");
+    test:assertTrue(booleanValue7);
 }
+
+type Nil ();
 
 @test:Config
 isolated function testStringToNil() returns error? {
@@ -76,6 +98,9 @@ isolated function testStringToNil() returns error? {
 
     () nilValue3 = check fromStringWithType("()");
     test:assertEquals(nilValue3, ());
+
+    Nil nilValue4 = check fromStringWithType("null");
+    test:assertEquals(nilValue4, ());
 }
 
 @test:Config
@@ -89,6 +114,8 @@ isolated function testStringToString() returns error? {
     string stringValue3 = check fromStringWithType("true");
     test:assertEquals(stringValue3, "true");
 }
+
+type Union1 float|decimal;
 
 @test:Config
 isolated function testStringToUnion() returns error? {
@@ -167,6 +194,10 @@ isolated function testStringToUnion() returns error? {
     decimal|string value19 = check fromStringWithType("-9.99E+61111");
     test:assertTrue(value19 is string);
     test:assertEquals(value19, "-9.99E+61111");
+
+    Union1 value20 = check fromStringWithType("1.2");
+    test:assertTrue(value20 is float);
+    test:assertEquals(value20, 1.2);
 }
 
 // Negative tests for fromStringWithType() function.
