@@ -19,6 +19,7 @@
 package io.ballerina.stdlib.data.json;
 
 import io.ballerina.runtime.api.TypeTags;
+import io.ballerina.runtime.api.creators.ErrorCreator;
 import io.ballerina.runtime.api.creators.ValueCreator;
 import io.ballerina.runtime.api.types.ArrayType;
 import io.ballerina.runtime.api.types.RecordType;
@@ -84,6 +85,43 @@ public class JsonCreator {
         } else {
             throw new JsonParser.JsonParserException("invalid type in field " +
                     getCurrentFieldPath(sm));
+        }
+    }
+
+    static BArray finalizeArray(JsonTraverse.JsonTree jsonTree, Type arrType, BArray currArr) {
+        int arrTypeTag = arrType.getTag();
+        BListInitialValueEntry[] initialValues = new BListInitialValueEntry[currArr.size()];
+        for (int i = 0; i < currArr.size(); i++) {
+            Object curElement = currArr.get(i);
+            Type currElmType = TypeUtils.getType(curElement);
+            if (currElmType.getTag() == TypeTags.ARRAY_TAG) {
+                if (arrTypeTag == TypeTags.ARRAY_TAG) {
+                    curElement = finalizeArray(jsonTree, ((ArrayType) arrType).getElementType(), (BArray) curElement);
+                } else if (arrTypeTag == TypeTags.TUPLE_TAG) {
+                    curElement = finalizeArray(jsonTree, ((TupleType) arrType).getTupleTypes().get(i),
+                            (BArray) curElement);
+                } else {
+                    throw ErrorCreator.createError(StringUtils.fromString("invalid type in field "));
+                }
+            } else {
+                if (arrTypeTag == TypeTags.ARRAY_TAG) {
+                    curElement = JsonCreator.convertJSON(jsonTree, curElement, ((ArrayType) arrType).getElementType());
+                } else if (arrTypeTag == TypeTags.TUPLE_TAG) {
+                    curElement = JsonCreator.convertJSON(jsonTree, curElement,
+                            ((TupleType) arrType).getTupleTypes().get(i));
+                } else {
+                    throw ErrorCreator.createError(StringUtils.fromString("invalid type in field "));
+                }
+            }
+            initialValues[i] = ValueCreator.createListInitialValueEntry(curElement);
+        }
+
+        if (arrTypeTag == TypeTags.ARRAY_TAG) {
+            return ValueCreator.createArrayValue((ArrayType) arrType, initialValues);
+        } else if (arrTypeTag == TypeTags.TUPLE_TAG) {
+            return ValueCreator.createTupleValue((TupleType) arrType, initialValues);
+        } else {
+            throw ErrorCreator.createError(StringUtils.fromString("invalid type in field "));
         }
     }
 
@@ -181,8 +219,34 @@ public class JsonCreator {
         }
     }
 
+    static Object convertJSON(JsonTraverse.JsonTree jsonTree, Object value, Type type) {
+        // all types are currently allowed for readonly type fields
+        if (type.getTag() == TypeTags.READONLY_TAG) {
+            return value;
+        }
+        try {
+            return JsonUtils.convertJSON(value, type);
+        } catch (Exception e) {
+            if (jsonTree.fieldNames.isEmpty()) {
+                throw ErrorCreator.createError(StringUtils.fromString("incompatible type for json: " + type));
+            }
+            throw ErrorCreator.createError(StringUtils.fromString("incompatible value '" + value + "' for type '" +
+                    type + "' in field '" + getCurrentFieldPath(jsonTree)));
+        }
+    }
+
     private static String getCurrentFieldPath(JsonParser.StateMachine sm) {
         Iterator<String> itr = sm.fieldNames.descendingIterator();
+
+        StringBuilder result = new StringBuilder(itr.hasNext() ? itr.next() : "");
+        while (itr.hasNext()) {
+            result.append(".").append(itr.next());
+        }
+        return result.toString();
+    }
+
+    static String getCurrentFieldPath(JsonTraverse.JsonTree jsonTree) {
+        Iterator<String> itr = jsonTree.fieldNames.descendingIterator();
 
         StringBuilder result = new StringBuilder(itr.hasNext() ? itr.next() : "");
         while (itr.hasNext()) {
