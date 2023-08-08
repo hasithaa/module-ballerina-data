@@ -48,8 +48,6 @@ public class JsonTraverse {
         JsonTree jsonTree = tlJsonTree.get();
         try {
             return jsonTree.traverseJson(json, type);
-        } catch (JsonParser.JsonParserException e) {
-            throw new RuntimeException(e);
         } finally {
             jsonTree.reset();
         }
@@ -80,7 +78,7 @@ public class JsonTraverse {
             rootArray = null;
         }
 
-        public Object traverseJson(Object json, Type type) throws JsonParser.JsonParserException {
+        public Object traverseJson(Object json, Type type) {
             Type referredType = TypeUtils.getReferredType(type);
             switch (referredType.getTag()) {
                 case TypeTags.JSON_TAG:
@@ -90,8 +88,13 @@ public class JsonTraverse {
                 case TypeTags.INT_TAG:
                 case TypeTags.FLOAT_TAG:
                 case TypeTags.DECIMAL_TAG:
-                case TypeTags.STRING_TAG:
                     return JsonCreator.convertJSON(this, json, referredType);
+                case TypeTags.STRING_TAG:
+                    Object resultJson = JsonCreator.convertJSON(this, json, referredType);
+                    if (resultJson instanceof String) {
+                        return StringUtils.fromString((String) resultJson);
+                    }
+                    return resultJson;
                 case TypeTags.RECORD_TYPE_TAG:
                     rootRecord = (RecordType) referredType;
                     this.fieldHierarchy.push(new HashMap<>(rootRecord.getFields()));
@@ -128,7 +131,7 @@ public class JsonTraverse {
         }
 
         private void initializeRootObject(Type recordType) {
-            if (recordType == null || recordType.getTag() != TypeTags.RECORD_TYPE_TAG) {
+            if (recordType == null) {
                 throw ErrorCreator.createError(StringUtils.fromString("expected record type for input type"));
             }
             currentJsonNode = ValueCreator.createRecordValue((RecordType) recordType);
@@ -143,7 +146,7 @@ public class JsonTraverse {
             nodesStack.push(currentJsonNode);
         }
 
-        private void traverseMapJsonOrArrayJson(Object json, Type type) throws JsonParser.JsonParserException {
+        private void traverseMapJsonOrArrayJson(Object json, Type type) {
             Object parentJsonNode = nodesStack.peek();
             if (json instanceof BMap) {
                 traverseMapValue(json, parentJsonNode);
@@ -155,12 +158,12 @@ public class JsonTraverse {
                     this.fieldHierarchy.pop();
                     this.restType.pop();
                 }
-                throw ErrorCreator.createError(StringUtils.fromString("incompatible type for json: " + json));
+                throw ErrorCreator.createError(StringUtils.fromString("incompatible type for json: " + type));
             }
             nodesStack.pop();
         }
 
-        private void traverseMapValue(Object json, Object parentJsonNode) throws JsonParser.JsonParserException {
+        private void traverseMapValue(Object json, Object parentJsonNode) {
             BMap<BString, Object> map = (BMap<BString, Object>) json;
             for (BString key : map.getKeys()) {
                 currentField = fieldHierarchy.peek().remove(key.toString());
@@ -209,20 +212,25 @@ public class JsonTraverse {
             restType.pop();
         }
 
-        private void traverseArrayValue(Object json, Object parentJsonNode) throws JsonParser.JsonParserException {
+        private void traverseArrayValue(Object json, Object parentJsonNode) {
             BArray array = (BArray) json;
             switch (rootArray.getTag()) {
                 case TypeTags.ARRAY_TAG:
-                    for (int i = 0; i < array.getLength(); i++) {
-                        Object jsonMember = array.get(i);
-                        currentJsonNode = traverseJson(jsonMember, ((ArrayType) rootArray).getElementType());
-                        ((BArray) parentJsonNode).append(currentJsonNode);
+                    int expectedArraySize = ((ArrayType) rootArray).getSize();
+                    if (expectedArraySize > array.getLength()) {
+                        throw ErrorCreator.createError(StringUtils.fromString(
+                                "size mismatch between target and source"));
+                    }
+                    if (expectedArraySize == -1) {
+                        traverseArrayMembers(array.getLength(), array, parentJsonNode);
+                    } else {
+                        traverseArrayMembers(expectedArraySize, array, parentJsonNode);
                     }
                     break;
                 case TypeTags.TUPLE_TAG:
                     Type restType = ((TupleType) rootArray).getRestType();
                     int expectedTupleTypeCount = ((TupleType) rootArray).getTupleTypes().size();
-                    if (restType == null && expectedTupleTypeCount != array.getLength()) {
+                    if (expectedTupleTypeCount > array.getLength()) {
                         throw ErrorCreator.createError(StringUtils.fromString(
                                 "size mismatch between target and source"));
                     }
@@ -231,14 +239,24 @@ public class JsonTraverse {
                         Object jsonMember = array.get(i);
                         if (i < expectedTupleTypeCount) {
                             currentJsonNode = traverseJson(jsonMember, ((TupleType) rootArray).getTupleTypes().get(i));
-                        } else {
+                        } else if (restType != null) {
                             currentJsonNode = traverseJson(jsonMember, restType);
+                        } else {
+                            continue;
                         }
                         ((BArray) parentJsonNode).append(currentJsonNode);
                     }
                     break;
             }
             currentJsonNode = parentJsonNode;
+        }
+
+        private void traverseArrayMembers(long length, BArray array, Object parentJsonNode) {
+            for (int i = 0; i < length; i++) {
+                Object jsonMember = array.get(i);
+                currentJsonNode = traverseJson(jsonMember, ((ArrayType) rootArray).getElementType());
+                ((BArray) parentJsonNode).append(currentJsonNode);
+            }
         }
 
         private void addRestField(Type restFieldType, BString key, Object jsonMember) {
@@ -283,12 +301,12 @@ public class JsonTraverse {
         }
 
         private void checkOptionalFieldsAndLogError(Map<String, Field> currentField) {
-            for (Field field : currentField.values()) {
+            currentField.values().forEach(field -> {
                 if (SymbolFlags.isFlagOn(field.getFlags(), SymbolFlags.REQUIRED)) {
                     throw ErrorCreator.createError(StringUtils.fromString("required field '" + field.getFieldName() +
                             "' not present in JSON"));
                 }
-            }
+            });
         }
     }
 }

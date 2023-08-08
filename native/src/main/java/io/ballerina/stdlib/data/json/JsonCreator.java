@@ -107,8 +107,14 @@ public class JsonCreator {
                 if (arrTypeTag == TypeTags.ARRAY_TAG) {
                     curElement = JsonCreator.convertJSON(jsonTree, curElement, ((ArrayType) arrType).getElementType());
                 } else if (arrTypeTag == TypeTags.TUPLE_TAG) {
-                    curElement = JsonCreator.convertJSON(jsonTree, curElement,
-                            ((TupleType) arrType).getTupleTypes().get(i));
+                    TupleType tupleType = (TupleType) arrType;
+                    if (tupleType.getTupleTypes().size() <= i) {
+                        curElement = JsonCreator.convertJSON(jsonTree, curElement,
+                                (tupleType.getRestType()));
+                    } else {
+                        curElement = JsonCreator.convertJSON(jsonTree, curElement,
+                                (tupleType.getTupleTypes().get(i)));
+                    }
                 } else {
                     throw ErrorCreator.createError(StringUtils.fromString("invalid type in field "));
                 }

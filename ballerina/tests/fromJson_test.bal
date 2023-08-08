@@ -37,6 +37,18 @@ isolated function testJsonToBasicTypes() returns error? {
 
     () val6 = check fromJsonWithType(null);
     test:assertEquals(val6, null);
+
+    json jsonContent = {
+        "a": "hello",
+        "b": 1,
+        "c": {
+            "d": "world",
+            "e": 2
+        }
+    };
+
+    string val7 = check fromJsonWithType(jsonContent);
+    test:assertEquals(val7, "{\"a\":\"hello\",\"b\":1,\"c\":{\"d\":\"world\",\"e\":2}}");
 }
 
 @test:Config
@@ -130,7 +142,7 @@ type R record {|
 |};
 
 @test:Config
-isolated function testJsonToRecord1() returns error? {
+isolated function testFromJsonWithType1() returns error? {
     json jsonContent = {
         "id": 2,
         "name": "Anne",
@@ -183,7 +195,7 @@ type Person record {
 };
 
 @test:Config
-isolated function testJsonToJson2() returns error? {
+isolated function testFromJsonWithType2() returns error? {
     json jsonContent = {
         "name": "John",
         "age": 30,
@@ -227,7 +239,7 @@ type Book record {|
 |};
 
 @test:Config
-isolated function testJsonToJson3() returns error? {
+isolated function testFromJsonWithType3() returns error? {
     json jsonContent = {
         "title": "To Kill a Mockingbird",
         "author": {
@@ -265,7 +277,7 @@ type School record {|
 |};
 
 @test:Config
-isolated function testJsonToJson4() returns error? {
+isolated function testFromJsonWithType4() returns error? {
     json jsonContent = {
         "name": "School Twelve",
         "city": 23,
@@ -291,7 +303,7 @@ type TestRecord record {
 };
 
 @test:Config
-function testJsonToJson5() returns error? {
+function testFromJsonWithType5() returns error? {
     json jsonContent = {
         "intValue": 10,
         "floatValue": 10.5,
@@ -338,7 +350,7 @@ type Class record {
 };
 
 @test:Config
-function testJsonToJson6() returns error? {
+function testFromJsonWithType6() returns error? {
     json jsonContent = {
         "id": 1,
         "name": "Class A",
@@ -379,7 +391,7 @@ type TestRecord2 record {
 };
 
 @test:Config
-function testJsonToJson7() returns error? {
+function testFromJsonWithType7() returns error? {
     json nestedJson = {
         "intValue": 5,
         "floatValue": 2.5,
@@ -403,7 +415,7 @@ type TestR record {|
 |};
 
 @test:Config
-isolated function testJsonToJson8() returns error? {
+isolated function testFromJsonWithType8() returns error? {
     json jsonContent = {
         "street": "Main",
         "city": "Mahar",
@@ -422,7 +434,7 @@ type TestArr1 record {
 };
 
 @test:Config
-isolated function testJsonToJson9() returns error? {
+isolated function testFromJsonWithType9() returns error? {
     json jsonContent = {
         "street": "Main",
         "city": "Mahar",
@@ -442,7 +454,7 @@ type TestArr2 record {
 };
 
 @test:Config
-isolated function testJsonToJson10() returns error? {
+isolated function testFromJsonWithType10() returns error? {
     json jsonContent = {
         "street": "Main",
         "city": 11,
@@ -462,7 +474,7 @@ type TestArr3 record {
 };
 
 @test:Config
-isolated function testJsonToJson11() returns error? {
+isolated function testFromJsonWithType11() returns error? {
     json jsonContent = {
         "street": "Main",
         "city": "Mahar",
@@ -482,7 +494,7 @@ type TestJson record {
 };
 
 @test:Config
-isolated function testJsonToJson12() returns error? {
+isolated function testFromJsonWithType12() returns error? {
     json jsonContent = {
         "street": "Main",
         "city": {
@@ -498,7 +510,7 @@ isolated function testJsonToJson12() returns error? {
 }
 
 @test:Config
-isolated function testJsonToJson16() returns error? {
+isolated function testFromJsonWithType13() returns error? {
     json jsonContent = {
         "street": "Main",
         "city": "Mahar",
@@ -510,7 +522,7 @@ isolated function testJsonToJson16() returns error? {
 }
 
 @test:Config
-isolated function testJsonToJson17() returns error? {
+isolated function testFromJsonWithType14() returns error? {
     json jsonContent = {
         "id": 12,
         "name": "Anne",
@@ -528,7 +540,7 @@ isolated function testJsonToJson17() returns error? {
 type intArr int[];
 
 @test:Config
-isolated function testJsonToJson18() returns error? {
+isolated function testFromJsonWithType15() returns error? {
     json jsonContent = [1, 2, 3];
 
     intArr x = check fromJsonWithType(jsonContent);
@@ -538,7 +550,7 @@ isolated function testJsonToJson18() returns error? {
 type tup [int, string, [int, float]];
 
 @test:Config
-isolated function testJsonToJson19() returns error? {
+isolated function testFromJsonWithType16() returns error? {
     json jsonContent = [1, "abc", [3, 4.0]];
 
     tup|ConversionError x = check fromJsonWithType(jsonContent);
@@ -546,7 +558,7 @@ isolated function testJsonToJson19() returns error? {
 }
 
 @test:Config
-isolated function testJsonToJson20() returns error? {
+isolated function testFromJsonWithType17() returns error? {
     json jsonContent = {
         "street": "Main",
         "city": {
@@ -565,6 +577,86 @@ isolated function testJsonToJson20() returns error? {
     test:assertEquals(x.city, {"name": "Mahar", "code": 94, "internal": {"id": 12, "agent": "Anne"}});
 }
 
+type BookA record {|
+    string title;
+    string author;
+|};
+
+type Library record {
+    BookA[2] books;
+};
+
+@test:Config
+isolated function testFromJsonWithType18() returns error? {
+    json jsonContent = {
+        "books": [
+            {
+                "title": "The Great Gatsby",
+                "author": "F. Scott Fitzgerald"
+            },
+            {
+                "title": "The Grapes of Wrath",
+                "author": "John Steinbeck"
+            },
+            {
+                "title": "Binary Echoes: Unraveling the Digital Web",
+                "author": "Alexandra Quinn"
+            }
+        ]
+    };
+
+    Library x = check fromJsonWithType(jsonContent);
+    test:assertEquals(x.books.length(), 2);
+    test:assertEquals(x.books[0].title, "The Great Gatsby");
+    test:assertEquals(x.books[0].author, "F. Scott Fitzgerald");
+    test:assertEquals(x.books[1].title, "The Grapes of Wrath");
+    test:assertEquals(x.books[1].author, "John Steinbeck");
+}
+
+type LibraryB record {
+    [BookA, BookA] books;
+};
+
+type LibraryC record {|
+    [BookA, BookA...] books;
+|};
+
+@test:Config
+isolated function testFromJsonWithType19() returns error? {
+    json jsonContent = {
+        "books": [
+            {
+                "title": "The Great Gatsby",
+                "author": "F. Scott Fitzgerald"
+            },
+            {
+                "title": "The Grapes of Wrath",
+                "author": "John Steinbeck"
+            },
+            {
+                "title": "Binary Echoes: Unraveling the Digital Web",
+                "author": "Alexandra Quinn"
+            }
+        ]
+    };
+
+    LibraryB x = check fromJsonWithType(jsonContent);
+    test:assertEquals(x.books.length(), 2);
+    test:assertEquals(x.books[0].title, "The Great Gatsby");
+    test:assertEquals(x.books[0].author, "F. Scott Fitzgerald");
+    test:assertEquals(x.books[1].title, "The Grapes of Wrath");
+    test:assertEquals(x.books[1].author, "John Steinbeck");
+
+    LibraryC y = check fromJsonWithType(jsonContent);
+    test:assertEquals(y.books.length(), 3);
+    test:assertEquals(y.books[0].title, "The Great Gatsby");
+    test:assertEquals(y.books[0].author, "F. Scott Fitzgerald");
+    test:assertEquals(y.books[1].title, "The Grapes of Wrath");
+    test:assertEquals(y.books[1].author, "John Steinbeck");
+    test:assertEquals(y.books[2].title, "Binary Echoes: Unraveling the Digital Web");
+    test:assertEquals(y.books[2].author, "Alexandra Quinn");
+}
+
 // Negative tests for fromJsonWithType() function.
 
 type AddressN record {
@@ -580,7 +672,7 @@ type RN record {|
 |};
 
 @test:Config
-isolated function testJsonToJson13() returns error? {
+isolated function testFromJsonWithTypeNegative1() returns error? {
     json jsonContent = {
         "id": 12,
         "name": "Anne",
@@ -602,7 +694,7 @@ type RN2 record {|
 |};
 
 @test:Config
-isolated function testJsonToJson14() returns error? {
+isolated function testFromJsonWithTypeNegative2() returns error? {
     json jsonContent = {
         "id": 12
     };
@@ -613,7 +705,7 @@ isolated function testJsonToJson14() returns error? {
 }
 
 @test:Config
-isolated function testJsonToJson15() returns error? {
+isolated function testFromJsonWithTypeNegative3() returns error? {
     json jsonContent = {
         "id": 12,
         "name": "Anne",
@@ -631,7 +723,7 @@ isolated function testJsonToJson15() returns error? {
 type Union int|float;
 
 @test:Config
-isolated function testIncompatibleType() returns error? {
+isolated function testFromJsonWithTypeNegative4() returns error? {
     json jsonContent = {
         name: "John"
     };
@@ -644,7 +736,27 @@ isolated function testIncompatibleType() returns error? {
     test:assertTrue(y is error);
     test:assertEquals((<error>y).message(), "incompatible type for json: (int|float)");
 
-    // table<RN2>|ConversionError z = fromJsonWithType(jsonContent);
-    // test:assertTrue(z is error);
-    // test:assertEquals((<error>z).message(), "incompatible type for json: table<RN2>");
+    table<RN2>|ConversionError z = fromJsonWithType(jsonContent);
+    test:assertTrue(z is error);
+    test:assertEquals((<error>z).message(), "incompatible type for json: table<data:RN2>");
+
+    RN2|ConversionError a = fromJsonWithType("1");
+    test:assertTrue(a is error);
+    test:assertEquals((<error>a).message(), "incompatible type for json: data:RN2");
+}
+
+type INTARR int[3];
+type INTTUPLE [int, int, int, int...];
+
+@test:Config
+isolated function testFromJsonWithTypeNegative5() returns error? {
+    json jsonContent = [1, 2];
+
+    INTARR|ConversionError x = fromJsonWithType(jsonContent);
+    test:assertTrue(x is error);
+    test:assertEquals((<error>x).message(), "size mismatch between target and source");
+
+    INTTUPLE|ConversionError y = fromJsonWithType(jsonContent);
+    test:assertTrue(y is error);
+    test:assertEquals((<error>y).message(), "size mismatch between target and source");
 }
