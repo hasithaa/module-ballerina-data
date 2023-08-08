@@ -16,17 +16,6 @@
 
 import ballerina/test;
 
-type Address record {
-    string street;
-    string city;
-};
-
-type R record {|
-    int id;
-    string name;
-    Address address;
-|};
-
 @test:Config {
     groups: ["jsonToJson"]
 }
@@ -48,23 +37,6 @@ isolated function testJsonToJson1() returns error? {
     test:assertEquals(x.address.street, "Main");
     test:assertEquals(x.address.city, "94");
 }
-
-type Coordinates record {
-    float latitude;
-    float longitude;
-};
-
-type AddressWithCord record {
-    string street;
-    int zipcode;
-    Coordinates coordinates;
-};
-
-type Person record {
-    string name;
-    int age;
-    AddressWithCord address;
-};
 
 @test:Config {
     groups: ["jsonToJson"]
@@ -93,26 +65,6 @@ isolated function testJsonToJson2() returns error? {
     test:assertEquals(x.address.coordinates.latitude, 40.7128);
     test:assertEquals(x.address.coordinates.longitude, -74.0060);
 }
-
-type Author record {|
-    string name;
-    string birthdate;
-    string hometown;
-    boolean...;
-|};
-
-type Publisher record {|
-    string name;
-    int year;
-    string...;
-|};
-
-type Book record {|
-    string title;
-    Author author;
-    Publisher publisher;
-    float...;
-|};
 
 @test:Config {
     groups: ["jsonToJson"]
@@ -149,13 +101,6 @@ isolated function testJsonToJson3() returns error? {
     test:assertEquals(x.author["local"], false);
 }
 
-type School record {|
-    string name;
-    int number;
-    boolean flag;
-    int...;
-|};
-
 @test:Config {
     groups: ["jsonToJson"]
 }
@@ -179,13 +124,6 @@ isolated function testJsonToJson4() returns error? {
     test:assertEquals(x["tp"], 12345);
 }
 
-type TestRecord record {
-    int intValue;
-    float floatValue;
-    string stringValue;
-    decimal decimalValue;
-};
-
 @test:Config {
     groups: ["jsonToJson"]
 }
@@ -206,35 +144,6 @@ function testJsonToJson5() returns error? {
     test:assertEquals(x.decimalValue, 10.50d);
     test:assertEquals(x["doNotParse"], ());
 }
-
-type SchoolAddress record {
-    string street;
-    string city;
-};
-
-type School1 record {
-    string name;
-    SchoolAddress address;
-};
-
-type Student1 record {
-    int id;
-    string name;
-    School1 school;
-};
-
-type Teacher record {
-    int id;
-    string name;
-};
-
-type Class record {
-    int id;
-    string name;
-    Student1 student;
-    Teacher teacher;
-    Student1? monitor;
-};
 
 @test:Config {
     groups: ["jsonToJson"]
@@ -275,11 +184,6 @@ function testJsonToJson6() returns error? {
     test:assertEquals(x.monitor, null);
 }
 
-type TestRecord2 record {
-    int intValue;
-    TestRecord nested1;
-};
-
 @test:Config {
     groups: ["jsonToJson"]
 }
@@ -303,11 +207,6 @@ function testJsonToJson7() returns error? {
     test:assertEquals(x.nested1.intValue, 5);
 }
 
-type TestR record {|
-    string street;
-    string city;
-|};
-
 @test:Config {
     groups: ["jsonToJson"]
 }
@@ -324,12 +223,6 @@ isolated function testJsonToJson8() returns error? {
     test:assertEquals(x.street, "Main");
     test:assertEquals(x.city, "Mahar");
 }
-
-type TestArr1 record {
-    string street;
-    string city;
-    int[] houses;
-};
 
 @test:Config {
     groups: ["jsonToJson"]
@@ -348,12 +241,6 @@ isolated function testJsonToJson9() returns error? {
     test:assertEquals(x.houses, [94, 95, 96]);
 }
 
-type TestArr2 record {
-    string street;
-    int city;
-    [int, string] house;
-};
-
 @test:Config {
     groups: ["jsonToJson"]
 }
@@ -371,12 +258,6 @@ isolated function testJsonToJson10() returns error? {
     test:assertEquals(x.house, [94, "Gedara"]);
 }
 
-type TestArr3 record {
-    string street;
-    string city;
-    [int, int[3]] house;
-};
-
 @test:Config {
     groups: ["jsonToJson"]
 }
@@ -393,12 +274,6 @@ isolated function testJsonToJson11() returns error? {
     test:assertEquals(x.city, "Mahar");
     test:assertEquals(x.house, [94, [1, 2, 3]]);
 }
-
-type TestJson record {
-    string street;
-    json city;
-    boolean flag;
-};
 
 @test:Config {
     groups: ["jsonToJson"]
@@ -418,19 +293,6 @@ isolated function testJsonToJson12() returns error? {
     test:assertEquals(x.street, "Main");
     test:assertEquals(x.city, {"name": "Mahar", "code": 94});
 }
-
-
-type AddressN record {
-    string street;
-    string city;
-    int id;
-};
-
-type RN record {|
-    int id;
-    string name;
-    AddressN address;
-|};
 
 @test:Config {
     groups: ["jsonToJson"]
@@ -454,11 +316,6 @@ isolated function testJsonToJson13() returns error? {
     test:assertTrue(x is error);
     test:assertEquals((<error>x).message(), "incompatible value 'true' for type 'int' in field 'address.id' at line: 8 column: 0");
 }
-
-type RN2 record {|
-    int id;
-    string name;
-|};
 
 @test:Config {
     groups: ["jsonToJsonx"]
@@ -531,8 +388,6 @@ isolated function testJsonToJson17() returns error? {
     test:assertEquals((<error>x).message(), "required field 'street' not present in JSON at line: 1 column: 56");
 }
 
-type intArr int[];
-
 @test:Config {
     groups: ["jsonToJson"]
 }
@@ -543,8 +398,6 @@ isolated function testJsonToJson18() returns error? {
     intArr x = check fromJsonByteArrayWithType(bytes);
     test:assertEquals(x, [1, 2, 3]);
 }
-
-type tup [int, string, [int, float]];
 
 @test:Config {
     groups: ["jsonToJson"]
