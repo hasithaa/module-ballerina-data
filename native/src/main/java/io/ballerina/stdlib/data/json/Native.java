@@ -27,6 +27,7 @@ import io.ballerina.stdlib.data.utils.DataUtils;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStreamReader;
+import java.io.StringReader;
 
 /**
  * JsonToJson.
@@ -49,10 +50,18 @@ public class Native {
     }
 
     public static Object fromJsonWithType(Object json, BMap<BString, Object> map, BTypedesc typed) {
-        return null;
+        try {
+            return JsonTraverse.traverse(json, typed);
+        } catch (Exception e) {
+            return DataUtils.getJsonError(e.getMessage());
+        }
     }
 
     public static Object fromJsonStringWithType(BString json, BMap<BString, Object> map, BTypedesc typed) {
-        return null;
+        try {
+            return JsonParser.parse(new StringReader(json.getValue()), typed);
+        } catch (Exception e) {
+            return DataUtils.getJsonError(e.getMessage());
+        }
     }
 }

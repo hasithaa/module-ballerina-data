@@ -74,21 +74,3 @@ public isolated function fromJsonByteStreamWithType(stream<byte[], error?> v, Op
 public type Options record {
     typedesc<float|decimal> numericPreference = decimal;
 };
-
-// Move this to parent module
-public type XmlOptions record {
-        // TODO : Complete this.
-};
-
-# Describes Conversion Error.
-public type ConversionError distinct error<record {
-
-    # The reason for the conversion error
-    string reason;
-
-    # The line number of the conversion error
-    int line;
-
-    # The column number of the conversion error
-    int column;
-}>;
