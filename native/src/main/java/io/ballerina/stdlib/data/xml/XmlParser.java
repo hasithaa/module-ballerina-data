@@ -1,32 +1,29 @@
 package io.ballerina.stdlib.data.xml;
 
+import io.ballerina.runtime.api.PredefinedTypes;
+import io.ballerina.runtime.api.TypeTags;
 import io.ballerina.runtime.api.creators.ErrorCreator;
+import io.ballerina.runtime.api.creators.TypeCreator;
 import io.ballerina.runtime.api.creators.ValueCreator;
+import io.ballerina.runtime.api.types.ArrayType;
 import io.ballerina.runtime.api.types.Field;
 import io.ballerina.runtime.api.types.RecordType;
 import io.ballerina.runtime.api.types.Type;
 import io.ballerina.runtime.api.utils.StringUtils;
+import io.ballerina.runtime.api.values.BArray;
 import io.ballerina.runtime.api.values.BError;
 import io.ballerina.runtime.api.values.BMap;
 import io.ballerina.runtime.api.values.BString;
-import io.ballerina.runtime.api.values.BXml;
-import io.ballerina.runtime.api.values.BXmlItem;
-import io.ballerina.runtime.api.values.BXmlQName;
-import io.ballerina.runtime.api.values.BXmlSequence;
+import io.ballerina.stdlib.data.FromString;
 
 import java.io.Reader;
 import java.io.StringReader;
 import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.Stack;
 
-import javax.xml.namespace.QName;
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
@@ -56,12 +53,17 @@ public class XmlParser {
     }
 
     private XMLStreamReader xmlStreamReader;
-    private Map<String, String> namespaces; // xml ns declarations from Bal source [xmlns "http://ns.com" as ns]
-    private Deque<BXmlSequence> seqDeque;
-    private Deque<List<BXml>> siblingDeque;
+//    private Map<String, String> namespaces; // xml ns declarations from Bal source [xmlns "http://ns.com" as ns]
+    static BMap<BString, Object> currentNode;
+    static Deque<Object> nodesStack = new ArrayDeque<>();
     static Stack<Map<String, Field>> fieldHierarchy = new Stack<>();
     static Stack<Type> restType = new Stack<>();
     static RecordType rootRecord;
+    static Field currentField;
+    Stack<String> parent = new Stack<>();
+    Deque<String> sibling = new ArrayDeque<>();
+    Type definedJsonType = PredefinedTypes.TYPE_JSON;
+    ArrayType definedJsonArrayType = TypeCreator.createArrayType(definedJsonType);
     public static final String PARSE_ERROR = "failed to parse xml";
     public static final String PARSE_ERROR_PREFIX = PARSE_ERROR + ": ";
 
@@ -70,14 +72,7 @@ public class XmlParser {
     }
 
     public XmlParser(Reader stringReader) {
-        namespaces = new HashMap<>();
-        seqDeque = new ArrayDeque<>();
-        siblingDeque = new ArrayDeque<>();
-
-        ArrayList<BXml> siblings = new ArrayList<>();
-        siblingDeque.push(siblings);
-        seqDeque.push(ValueCreator.createXmlSequence(siblings));
-
+//        namespaces = new HashMap<>();
         try {
             xmlStreamReader = xmlInputFactory.createXMLStreamReader(stringReader);
         } catch (XMLStreamException e) {
@@ -85,17 +80,10 @@ public class XmlParser {
         }
     }
 
-    public static BXml parse(Reader reader, Type type) {
+    public static Object parse(Reader reader, Type type) {
         try {
-//            if (type.getTag() == TypeTags.RECORD_TYPE_TAG) {
-//                rootRecord = (RecordType) type;
-//                fieldHierarchy.push(new HashMap<>(rootRecord.getFields()));
-//                restType.push(rootRecord.getRestFieldType());
-//            } else {
-//                throw ErrorCreator.createError(StringUtils.fromString("unsupported type"));
-//            }
             XmlParser xmlParser = new XmlParser(reader);
-            return xmlParser.parse();
+            return xmlParser.parse(type);
         } catch (BError e) {
             throw e;
 //        } catch (DeferredParsingException e) {
@@ -103,6 +91,14 @@ public class XmlParser {
         } catch (Throwable e) {
             throw ErrorCreator.createError(StringUtils.fromString(PARSE_ERROR_PREFIX + e.getMessage()));
         }
+    }
+
+    private static void initRootObject(Type recordType) {
+        if (recordType == null) {
+            throw ErrorCreator.createError(StringUtils.fromString("expected record type for input type"));
+        }
+        currentNode = ValueCreator.createRecordValue((RecordType) recordType);
+        nodesStack.push(currentNode);
     }
 
     private void handleXMLStreamException(Exception e) {
@@ -113,8 +109,24 @@ public class XmlParser {
         throw ErrorCreator.createError(StringUtils.fromString(PARSE_ERROR_PREFIX + reason));
     }
 
-    public BXml parse() {
+    public Object parse(Type type) {
+        if (type.getTag() != TypeTags.RECORD_TYPE_TAG) {
+            throw ErrorCreator.createError(StringUtils.fromString("unsupported type"));
+        }
+        rootRecord = (RecordType) type;
+        fieldHierarchy.push(new HashMap<>(rootRecord.getFields()));
+        restType.push(rootRecord.getRestFieldType());
+        initRootObject(rootRecord);
+        return parse();
+    }
+
+    public Object parse() {
         try {
+            // Neglect root element
+            if (xmlStreamReader.hasNext()) {
+                xmlStreamReader.next();
+            }
+
             while (xmlStreamReader.hasNext()) {
                 int next = xmlStreamReader.next();
                 switch (next) {
@@ -155,87 +167,98 @@ public class XmlParser {
     }
 
     private void readPI(XMLStreamReader xmlStreamReader) {
-        BXml xmlItem = ValueCreator.createXmlProcessingInstruction(xmlStreamReader.getPITarget(),
-                xmlStreamReader.getPIData());
-        siblingDeque.peek().add(xmlItem);
+       // ignore
     }
 
     private void readText(XMLStreamReader xmlStreamReader) {
-        siblingDeque.peek().add(ValueCreator.createXmlText(xmlStreamReader.getText()));
+        if (currentField == null) {
+            return;
+        }
+
+        BString text = StringUtils.fromString(xmlStreamReader.getText());
+        BString fieldName = StringUtils.fromString(currentField.getFieldName());
+        Type fieldType = currentField.getFieldType();
+        if (currentNode.containsKey(fieldName)) {
+            if (currentField.getFieldType().getTag() != TypeTags.ARRAY_TAG) {
+                throw ErrorCreator.createError(StringUtils.fromString("Incompatible type"));
+            }
+            ((BArray) currentNode.get(fieldName)).append(convertStringToExpType(text, fieldType));
+            return;
+        }
+        currentNode.put(fieldName, convertStringToExpType(text, fieldType));
+    }
+
+    private Object convertStringToExpType(BString value, Type expType) {
+        if (expType.getTag() == TypeTags.ARRAY_TAG) {
+            expType = ((ArrayType) expType).getElementType();
+        }
+        return FromString.fromStringWithTypeInternal(value, expType);
     }
 
     private void readComment(XMLStreamReader xmlStreamReader) {
-        BXml xmlComment = ValueCreator.createXmlComment(xmlStreamReader.getText());
-        siblingDeque.peek().add(xmlComment);
+        // Ignore
     }
 
-    private BXmlSequence buildDocument() {
-        this.siblingDeque.pop();
-        return this.seqDeque.pop();
+    private Object buildDocument() {
+//        if (!fieldHierarchy.isEmpty()) {
+//            throw ErrorCreator.createError(StringUtils.fromString("Incompatible type"));
+//        }
+        return nodesStack.peek();
     }
 
     private void endElement() {
-        this.siblingDeque.pop();
-        this.seqDeque.pop();
+        if (parent.contains(xmlStreamReader.getName().getLocalPart())) {
+            currentNode = (BMap<BString, Object>) nodesStack.pop();
+            sibling.clear();
+            sibling.push(parent.pop());
+            fieldHierarchy.pop();
+            restType.pop();
+        }
     }
 
     private void readElement(XMLStreamReader xmlStreamReader) {
-        QName elemName = xmlStreamReader.getName();
-//        if (fieldHierarchy.peek().remove(elemName.getLocalPart()) == null) {
-//            return;
-//        }
+        String elemName = xmlStreamReader.getName().getLocalPart();
+        currentField = fieldHierarchy.peek().get(elemName);
 
-        BXmlQName name = ValueCreator.createXmlQName(elemName.getLocalPart(),
-                elemName.getNamespaceURI(), elemName.getPrefix());
-        BXmlItem xmlItem = (BXmlItem) ValueCreator.createXmlValue(name, name, null);
+        if (currentField == null) {
+            // TODO: Check rest field type compatibility
+            if (restType.peek() == null) {
+                return;
+            }
+        }
 
-        seqDeque.push(xmlItem.getChildrenSeq());
+        if (!sibling.contains(elemName)) {
+            sibling.push(elemName);
+        } else {
+            Object temp = currentNode.get(StringUtils.fromString(elemName));
+            BArray tempArray = ValueCreator.createArrayValue(definedJsonArrayType);
+            tempArray.append(temp);
+            currentNode.put(StringUtils.fromString(elemName), tempArray);
+        }
 
-        siblingDeque.peek().add(xmlItem);
-        populateAttributeMap(xmlStreamReader, xmlItem, elemName);
-        siblingDeque.push(xmlItem.getChildrenSeq().getChildrenList());
+        Type fieldType = currentField.getFieldType();
+        if (fieldType.getTag() == TypeTags.RECORD_TYPE_TAG) {
+            parent.push(sibling.remove());
+            updateNextValue((RecordType) currentField.getFieldType(), elemName);
+        } else if (fieldType.getTag() == TypeTags.ARRAY_TAG
+                && ((ArrayType) fieldType).getElementType().getTag() == TypeTags.RECORD_TYPE_TAG) {
+            parent.push(sibling.remove());
+            updateNextValue((RecordType) ((ArrayType) fieldType).getElementType(), elemName);
+        }
     }
-    // need to duplicate the same in xmlItem.setAttribute
 
-    // todo: need to write a comment explaining each step
-    private void populateAttributeMap(XMLStreamReader xmlStreamReader, BXmlItem xmlItem, QName elemName) {
-        BMap<BString, BString> attributesMap = xmlItem.getAttributesMap();
-        Set<QName> usedNS = new HashSet<>(); // Track namespace prefixes found in this element.
+    public void updateNextValue(RecordType rootRecord, String elemName) {
+        BMap<BString, Object> nextValue = ValueCreator.createRecordValue(rootRecord);
+        fieldHierarchy.push(new HashMap<>(rootRecord.getFields()));
+        restType.push(rootRecord.getRestFieldType());
 
-        int count = xmlStreamReader.getAttributeCount();
-        for (int i = 0; i < count; i++) {
-            QName attributeName = xmlStreamReader.getAttributeName(i);
-            attributesMap.put(StringUtils.fromString(attributeName.toString()),
-                    StringUtils.fromString(xmlStreamReader.getAttributeValue(i)));
-            if (!attributeName.getPrefix().isEmpty()) {
-                usedNS.add(attributeName);
-            }
+        Object temp = currentNode.get(StringUtils.fromString(elemName));
+        if (temp instanceof BArray) {
+            ((BArray) temp).append(nextValue);
+        } else {
+            currentNode.put(StringUtils.fromString(elemName), nextValue);
         }
-
-        if (!elemName.getPrefix().isEmpty()) {
-            usedNS.add(elemName);
-        }
-        for (QName qName : usedNS) {
-            String prefix = qName.getPrefix();
-            String namespaceURI = qName.getNamespaceURI();
-            if (namespaceURI.isEmpty()) {
-                namespaceURI = namespaces.getOrDefault(prefix, "");
-            }
-
-            BString xmlnsPrefix = StringUtils.fromString(BXmlItem.XMLNS_NS_URI_PREFIX + prefix);
-            attributesMap.put(xmlnsPrefix, StringUtils.fromString(namespaceURI));
-        }
-
-        int namespaceCount = xmlStreamReader.getNamespaceCount();
-        for (int i = 0; i < namespaceCount; i++) {
-            String uri = xmlStreamReader.getNamespaceURI(i);
-            String prefix = xmlStreamReader.getNamespacePrefix(i);
-            if (prefix == null || prefix.isEmpty()) {
-                attributesMap.put(BXmlItem.XMLNS_PREFIX, StringUtils.fromString(uri));
-            } else {
-                attributesMap.put(StringUtils.fromString(BXmlItem.XMLNS_NS_URI_PREFIX + prefix),
-                        StringUtils.fromString(uri));
-            }
-        }
+        nodesStack.push(currentNode);
+        currentNode = nextValue;
     }
 }

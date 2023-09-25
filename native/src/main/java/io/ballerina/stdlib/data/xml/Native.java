@@ -5,6 +5,7 @@ import io.ballerina.runtime.api.values.BMap;
 import io.ballerina.runtime.api.values.BStream;
 import io.ballerina.runtime.api.values.BString;
 import io.ballerina.runtime.api.values.BTypedesc;
+import io.ballerina.stdlib.data.utils.DataUtils;
 
 import java.io.StringReader;
 
@@ -31,7 +32,7 @@ public class Native {
         try {
             return XmlParser.parse(new StringReader(xml.getValue()), typed.getDescribingType());
         } catch (Exception e) {
-            return null;
+            return DataUtils.getError(e.getMessage());
         }
     }
 }
