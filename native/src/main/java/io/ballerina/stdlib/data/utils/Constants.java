@@ -42,12 +42,13 @@ public class Constants {
     public static final ArrayType JSON_ARRAY_TYPE = TypeCreator.createArrayType(PredefinedTypes.TYPE_JSON);
     public static final String FIELD = "$field$.";
     public static final String NAME_SPACE = "Namespace";
-    public static final String URI = "uri";
-    public static final String PREFIX = "prefix";
+    public static final BString URI = StringUtils.fromString("uri");
+    public static final BString PREFIX = StringUtils.fromString("prefix");
     public static final String ATTRIBUTE = "Attribute";
     public static final String SKIP_ATTRIBUTE = "skip";
     public static final String ADD_IF_HAS_ANNOTATION = "add";
     public static final int DEFAULT_TYPE_FLAG = 2049;
     public static final String NAME = "Name";
     public static final BString VALUE = StringUtils.fromString("value");
+    public static final String CONTENT = "#content";
 }

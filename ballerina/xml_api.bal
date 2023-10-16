@@ -16,6 +16,37 @@
 
 import ballerina/jballerina.java;
 
+# Defines the name of the XML element.
+#
+# + value - The name of the XML element
+public type NameConfig record {|
+    string value;
+|};
+
+# The annotation is used to specify the new name of the existing record name or field name according to the XML format.
+# In the XML-record conversion, this annotation can be used to override the default XML element name using the
+# `xmldata:toXML` API and validate the overridden XML element name with record field using the `xmldata:fromXml` API.
+public annotation NameConfig Name on type, record field;
+
+# Defines the namespace of the XML element
+#
+# + prefix - The value of the prefix of the namespace
+# + uri - The value of the URI of the namespace
+public type NamespaceConfig record {|
+    string prefix?;
+    string uri;
+|};
+
+# The annotation is used to specify the namespace's prefix and URI of the XML element.
+# In the XML-record conversion, this annotation can be used to add XML namespace using the `xmldata:toXML` API and
+# validate the the XML namespace with record in the `xmldata:fromXml` API.
+public annotation NamespaceConfig Namespace on type;
+
+# The annotation is used to denote the field that is considered an attribute.
+# In the XML-record conversion, this annotation can be used to add XML attribute using the `xmldata:toXML` API and
+# validate the XML attribute with record fields in the `xmldata:fromXml` API.
+public annotation Attribute on record field;
+
 # A Parse a json value with projection
 #
 # + v - Source XML value 

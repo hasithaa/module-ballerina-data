@@ -66,6 +66,11 @@ public class DataUtils {
                 null, null);
     }
 
+    public static BError getXmlError(String message) {
+        return ErrorCreator.createError(ModuleUtils.getModule(), ERROR, StringUtils.fromString(message),
+                null, null);
+    }
+
     @SuppressWarnings("unchecked")
     public static Object getModifiedRecord(BMap<BString, Object> input, BTypedesc type) {
         Type describingType = type.getDescribingType();
@@ -310,7 +315,7 @@ public class DataUtils {
             if (value.getValue().endsWith(Constants.NAME_SPACE)) {
                 hasNamespaceAnnotation = true;
                 BMap<BString, Object> namespaceAnnotation = (BMap<BString, Object>) annotation.get(value);
-                BString prefix = (BString) namespaceAnnotation.get(StringUtils.fromString(Constants.PREFIX));
+                BString prefix = (BString) namespaceAnnotation.get(Constants.PREFIX);
                 if (prefix != null) {
                     key = prefix.getValue().concat(":").concat(key);
                 }
@@ -338,8 +343,8 @@ public class DataUtils {
     private static String processNamespaceAnnotation(BMap<BString, Object> annotation, String key, BString value,
                                                      BMap<BString, Object>  subRecord) {
         BMap<BString, Object> namespaceAnnotation = (BMap<BString, Object>) annotation.get(value);
-        BString uri = (BString) namespaceAnnotation.get(StringUtils.fromString(Constants.URI));
-        BString prefix = (BString) namespaceAnnotation.get(StringUtils.fromString(Constants.PREFIX));
+        BString uri = (BString) namespaceAnnotation.get(Constants.URI);
+        BString prefix = (BString) namespaceAnnotation.get(Constants.PREFIX);
         if (prefix ==  null) {
             subRecord.put(StringUtils.fromString(ATTRIBUTE_PREFIX + "xmlns"), uri);
         } else {
