@@ -191,7 +191,7 @@ public class XmlParser {
 
         BString text = StringUtils.fromString(xmlStreamReader.getText());
         String fieldName = currentField.getFieldName();
-        BString bFieldName = StringUtils.fromString(currentField.getFieldName());
+        BString bFieldName = StringUtils.fromString(fieldName);
         Type fieldType = currentField.getFieldType();
         if (currentNode.containsKey(bFieldName)) {
             // Handle - <name>James <!-- FirstName --> Clark</name>
@@ -202,10 +202,15 @@ public class XmlParser {
                 return;
             }
 
-            // TODO: Handle closed array compatible check and expected type check for array.
-            if (currentField.getFieldType().getTag() != TypeTags.ARRAY_TAG) {
+            if (fieldType.getTag() != TypeTags.ARRAY_TAG) {
                 throw DataUtils.getXmlError("Incompatible type");
             }
+
+            int arraySize = ((ArrayType) fieldType).getSize();
+            if (arraySize != -1 && arraySize <= ((BArray) currentNode.get(bFieldName)).getLength()) {
+                return;
+            }
+
             ((BArray) currentNode.get(bFieldName)).append(convertStringToExpType(text, fieldType));
             return;
         }
@@ -299,6 +304,15 @@ public class XmlParser {
         HashSet<String> siblingKeys = new HashSet<>(siblings.keySet());
 
         for (String key : fieldHierarchy.peek().keySet()) {
+            // Validate required array size
+            if (fieldHierarchy.peek().get(key).getFieldType().getTag() == TypeTags.ARRAY_TAG) {
+                ArrayType arrayType = (ArrayType) fieldHierarchy.peek().get(key).getFieldType();
+                if (arrayType.getSize() != -1
+                        && arrayType.getSize() != ((BArray) currentNode.get(StringUtils.fromString(key))).getLength()) {
+                    throw DataUtils.getXmlError("Array size is not compatible with the expected size");
+                }
+            }
+
             if (!siblingKeys.contains(modifiedNamesHierarchy.peek().getOrDefault(key, key))) {
                 throw DataUtils.getXmlError("Required field: " + key);
             }
@@ -362,7 +376,10 @@ public class XmlParser {
 
         Object temp = currentNode.get(StringUtils.fromString(fieldName));
         if (temp instanceof BArray) {
-            ((BArray) temp).append(nextValue);
+            int arraySize = ((ArrayType) currentField.getFieldType()).getSize();
+            if (arraySize > ((BArray) temp).getLength() || arraySize == -1) {
+                ((BArray) temp).append(nextValue);
+            }
         } else {
             currentNode.put(StringUtils.fromString(fieldName), nextValue);
         }
