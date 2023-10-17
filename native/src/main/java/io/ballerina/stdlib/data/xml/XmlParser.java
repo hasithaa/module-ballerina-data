@@ -42,7 +42,7 @@ import static javax.xml.stream.XMLStreamConstants.PROCESSING_INSTRUCTION;
 import static javax.xml.stream.XMLStreamConstants.START_ELEMENT;
 
 /**
- *
+ * Convert Xml string to a ballerina record.
  *
  * @since 1.0.0
  */
@@ -58,18 +58,7 @@ public class XmlParser {
 
     private XMLStreamReader xmlStreamReader;
     private static BMap<BString, Object> currentNode;
-    private static Stack<Object> nodesStack = new Stack<>();
-    private static Stack<Map<String, Field>> fieldHierarchy = new Stack<>();
-    private static Stack<Map<String, Field>> attributeHierarchy = new Stack<>();
-    private static Stack<Map<String, String>> modifiedNamesHierarchy = new Stack<>();
-    private static Stack<Type> restTypes = new Stack<>();
-    private static Stack<String> restFieldsPoints = new Stack<>();
-    private static RecordType rootRecord;
-    private static Field currentField;
-    private static String rootElement;
-    private Stack<LinkedHashMap<String, Boolean>> parents = new Stack<>();
-    private LinkedHashMap<String, Boolean> siblings = new LinkedHashMap<>();
-    private ArrayType definedAnyDataArrayType = TypeCreator.createArrayType(PredefinedTypes.TYPE_ANYDATA);
+    private final ArrayType definedAnyDataArrayType = TypeCreator.createArrayType(PredefinedTypes.TYPE_ANYDATA);
     public static final String PARSE_ERROR = "failed to parse xml";
     public static final String PARSE_ERROR_PREFIX = PARSE_ERROR + ": ";
 
@@ -83,8 +72,9 @@ public class XmlParser {
 
     public static Object parse(Reader reader, Type type) {
         try {
+            XmlParserData xmlParserData = new XmlParserData();
             XmlParser xmlParser = new XmlParser(reader);
-            return xmlParser.parse(type);
+            return xmlParser.parse(type, xmlParserData);
         } catch (BError e) {
             throw e;
         } catch (Throwable e) {
@@ -92,12 +82,12 @@ public class XmlParser {
         }
     }
 
-    private static void initRootObject(Type recordType) {
+    private static void initRootObject(Type recordType, XmlParserData xmlParserData) {
         if (recordType == null) {
             throw DataUtils.getXmlError("expected record type for input type");
         }
         currentNode = ValueCreator.createRecordValue((RecordType) recordType);
-        nodesStack.push(currentNode);
+        xmlParserData.nodesStack.push(currentNode);
     }
 
     private void handleXMLStreamException(Exception e) {
@@ -108,33 +98,33 @@ public class XmlParser {
         throw DataUtils.getXmlError(PARSE_ERROR_PREFIX + reason);
     }
 
-    public Object parse(Type type) {
+    public Object parse(Type type, XmlParserData xmlParserData) {
         if (type.getTag() != TypeTags.RECORD_TYPE_TAG) {
             throw DataUtils.getXmlError("unsupported type");
         }
-        rootRecord = (RecordType) type;
-        return parse();
+        xmlParserData.rootRecord = (RecordType) type;
+        return parse(xmlParserData);
     }
 
-    public Object parse() {
+    public Object parse(XmlParserData xmlParserData) {
         try {
-            parseRootElement(xmlStreamReader);
+            parseRootElement(xmlStreamReader, xmlParserData);
 
             while (xmlStreamReader.hasNext()) {
                 int next = xmlStreamReader.next();
                 switch (next) {
                     case START_ELEMENT:
-                        readElement(xmlStreamReader);
+                        readElement(xmlStreamReader, xmlParserData);
                         break;
                     case END_ELEMENT:
-                        endElement(xmlStreamReader);
+                        endElement(xmlStreamReader, xmlParserData);
                         break;
                     case CDATA:
                     case CHARACTERS:
-                        readText(xmlStreamReader);
+                        readText(xmlStreamReader, xmlParserData);
                         break;
                     case END_DOCUMENT:
-                        return buildDocument();
+                        return buildDocument(xmlParserData);
                     case PROCESSING_INSTRUCTION:
                     case COMMENT:
                     case DTD:
@@ -151,37 +141,40 @@ public class XmlParser {
         return currentNode;
     }
 
-    private void parseRootElement(XMLStreamReader xmlStreamReader) {
+    private void parseRootElement(XMLStreamReader xmlStreamReader, XmlParserData xmlParserData) {
         try {
-            initRootObject(rootRecord);
+            RecordType rootRecord = xmlParserData.rootRecord;
+            initRootObject(rootRecord, xmlParserData);
 
             if (xmlStreamReader.hasNext() && xmlStreamReader.next() != START_ELEMENT) {
                 throw DataUtils.getXmlError("Invalid root must be an start element");
             }
 
-            rootElement = getXmlNameFromRecordAnnotation(rootRecord, rootRecord.getName());
+            xmlParserData.rootElement =
+                    getXmlNameFromRecordAnnotation(rootRecord, rootRecord.getName());
             String elementName = xmlStreamReader.getLocalName();
-            if (!rootElement.equals(elementName)) {
-                throw DataUtils.getXmlError("The record type name: " + rootElement +
+            if (!xmlParserData.rootElement.equals(elementName)) {
+                throw DataUtils.getXmlError("The record type name: " + xmlParserData.rootElement +
                         " mismatch with given XML name: " + elementName);
             }
 
             validateNamespace(xmlStreamReader, rootRecord);
 
             // Keep track of fields and attributes
-            fieldHierarchy.push(new HashMap<>(getAllFieldsInRecordType(rootRecord)));
-            restTypes.push(rootRecord.getRestFieldType());
-            attributeHierarchy.push(new HashMap<>(getAllAttributesInRecordType(rootRecord)));
-            handleAttributes(xmlStreamReader);
+            xmlParserData.fieldHierarchy.push(new HashMap<>(getAllFieldsInRecordType(rootRecord, xmlParserData)));
+            xmlParserData.restTypes.push(rootRecord.getRestFieldType());
+            xmlParserData.attributeHierarchy.push(new HashMap<>(getAllAttributesInRecordType(rootRecord)));
+            handleAttributes(xmlStreamReader, xmlParserData);
 
         } catch (XMLStreamException e) {
             handleXMLStreamException(e);
         }
     }
 
-    private void readText(XMLStreamReader xmlStreamReader) {
+    private void readText(XMLStreamReader xmlStreamReader, XmlParserData xmlParserData) {
+        Field currentField = xmlParserData.currentField;
         if (currentField == null) {
-            Map<String, Field> currentFieldMap = fieldHierarchy.peek();
+            Map<String, Field> currentFieldMap = xmlParserData.fieldHierarchy.peek();
             if (currentFieldMap.containsKey(Constants.CONTENT)) {
                 currentField = currentFieldMap.remove(Constants.CONTENT);
             } else {
@@ -195,7 +188,8 @@ public class XmlParser {
         Type fieldType = currentField.getFieldType();
         if (currentNode.containsKey(bFieldName)) {
             // Handle - <name>James <!-- FirstName --> Clark</name>
-            if (!siblings.get(modifiedNamesHierarchy.peek().getOrDefault(fieldName, fieldName))
+            if (!xmlParserData.siblings.get(
+                    xmlParserData.modifiedNamesHierarchy.peek().getOrDefault(fieldName, fieldName))
                     && fieldType.getTag() == TypeTags.STRING_TAG) {
                 currentNode.put(bFieldName, StringUtils.fromString(
                         String.valueOf(currentNode.get(bFieldName)) + xmlStreamReader.getText()));
@@ -216,28 +210,28 @@ public class XmlParser {
         }
 
         if (fieldType.getTag() == TypeTags.RECORD_TYPE_TAG) {
-            handleContentFieldInRecordType((RecordType) fieldType, text);
+            handleContentFieldInRecordType((RecordType) fieldType, text, xmlParserData);
             return;
         } else if (fieldType.getTag() == TypeTags.ARRAY_TAG
                 && ((ArrayType) fieldType).getElementType().getTag() == TypeTags.RECORD_TYPE_TAG) {
-            handleContentFieldInRecordType((RecordType) ((ArrayType) fieldType).getElementType(), text);
+            handleContentFieldInRecordType((RecordType) ((ArrayType) fieldType).getElementType(), text, xmlParserData);
             return;
         }
         currentNode.put(bFieldName, convertStringToExpType(text, fieldType));
     }
 
-    private void handleContentFieldInRecordType(RecordType recordType, BString text) {
-        fieldHierarchy.pop();
-        restTypes.pop();
-        modifiedNamesHierarchy.pop();
-        attributeHierarchy.pop();
-        siblings = parents.pop();
+    private void handleContentFieldInRecordType(RecordType recordType, BString text, XmlParserData xmlParserData) {
+        xmlParserData.fieldHierarchy.pop();
+        xmlParserData.restTypes.pop();
+        xmlParserData.modifiedNamesHierarchy.pop();
+        xmlParserData.attributeHierarchy.pop();
+        xmlParserData.siblings = xmlParserData.parents.pop();
 
         for (String key : recordType.getFields().keySet()) {
             if (key.contains(Constants.CONTENT)) {
                 currentNode.put(StringUtils.fromString(key),
                         convertStringToExpType(text, recordType.getFields().get(key).getFieldType()));
-                currentNode = (BMap<BString, Object>) nodesStack.pop();
+                currentNode = (BMap<BString, Object>) xmlParserData.nodesStack.pop();
                 return;
             }
         }
@@ -248,7 +242,7 @@ public class XmlParser {
         }
 
         currentNode.put(StringUtils.fromString(Constants.CONTENT), convertStringToRestExpType(text, restType));
-        currentNode = (BMap<BString, Object>) nodesStack.pop();
+        currentNode = (BMap<BString, Object>) xmlParserData.nodesStack.pop();
     }
 
     private Object convertStringToExpType(BString value, Type expType) {
@@ -273,14 +267,16 @@ public class XmlParser {
         return DataUtils.getXmlError("Incompatible rest type");
     }
 
-    private Object buildDocument() {
-        validateRequiredFields(siblings);
-        return nodesStack.peek();
+    private Object buildDocument(XmlParserData xmlParserData) {
+        validateRequiredFields(xmlParserData.siblings, xmlParserData);
+        return xmlParserData.nodesStack.peek();
     }
 
-    private void endElement(XMLStreamReader xmlStreamReader) {
-        currentField = null;
+    private void endElement(XMLStreamReader xmlStreamReader, XmlParserData xmlParserData) {
+        xmlParserData.currentField = null;
         String elemName = xmlStreamReader.getName().getLocalPart();
+        LinkedHashMap<String, Boolean> siblings = xmlParserData.siblings;
+        Stack<LinkedHashMap<String, Boolean>> parents = xmlParserData.parents;
         if (siblings.containsKey(elemName) && !siblings.get(elemName)) {
             siblings.put(elemName, true);
         }
@@ -288,58 +284,59 @@ public class XmlParser {
             return;
         }
 
-        validateRequiredFields(siblings);
-        currentNode = (BMap<BString, Object>) nodesStack.pop();
-        siblings = parents.pop();
-        fieldHierarchy.pop();
-        modifiedNamesHierarchy.pop();
-        restTypes.pop();
+        validateRequiredFields(siblings, xmlParserData);
+        currentNode = (BMap<BString, Object>) xmlParserData.nodesStack.pop();
+        xmlParserData.siblings = parents.pop();
+        xmlParserData.fieldHierarchy.pop();
+        xmlParserData.modifiedNamesHierarchy.pop();
+        xmlParserData.restTypes.pop();
         // TODO: Remove if check
-        if (!attributeHierarchy.isEmpty()) {
-            attributeHierarchy.pop();
+        if (!xmlParserData.attributeHierarchy.isEmpty()) {
+            xmlParserData.attributeHierarchy.pop();
         }
     }
 
-    private void validateRequiredFields(LinkedHashMap<String, Boolean> siblings) {
+    private void validateRequiredFields(LinkedHashMap<String, Boolean> siblings, XmlParserData xmlParserData) {
         HashSet<String> siblingKeys = new HashSet<>(siblings.keySet());
 
-        for (String key : fieldHierarchy.peek().keySet()) {
+        for (String key : xmlParserData.fieldHierarchy.peek().keySet()) {
             // Validate required array size
-            if (fieldHierarchy.peek().get(key).getFieldType().getTag() == TypeTags.ARRAY_TAG) {
-                ArrayType arrayType = (ArrayType) fieldHierarchy.peek().get(key).getFieldType();
+            if (xmlParserData.fieldHierarchy.peek().get(key).getFieldType().getTag() == TypeTags.ARRAY_TAG) {
+                ArrayType arrayType = (ArrayType) xmlParserData.fieldHierarchy.peek().get(key).getFieldType();
                 if (arrayType.getSize() != -1
                         && arrayType.getSize() != ((BArray) currentNode.get(StringUtils.fromString(key))).getLength()) {
                     throw DataUtils.getXmlError("Array size is not compatible with the expected size");
                 }
             }
 
-            if (!siblingKeys.contains(modifiedNamesHierarchy.peek().getOrDefault(key, key))) {
+            if (!siblingKeys.contains(xmlParserData.modifiedNamesHierarchy.peek().getOrDefault(key, key))) {
                 throw DataUtils.getXmlError("Required field: " + key);
             }
         }
     }
 
-    private void readElement(XMLStreamReader xmlStreamReader) {
+    private void readElement(XMLStreamReader xmlStreamReader, XmlParserData xmlParserData) {
         String elemName = xmlStreamReader.getName().getLocalPart();
-        currentField = fieldHierarchy.peek().get(elemName);
+        xmlParserData.currentField = xmlParserData.fieldHierarchy.peek().get(elemName);
 
-        if (currentField == null) {
+        if (xmlParserData.currentField == null) {
             // TODO: Check rest field type compatibility for record type (rest field)
-            if (restTypes.peek() == null) {
+            if (xmlParserData.restTypes.peek() == null) {
                 return;
             }
 
-            Optional<String> lastElement = Optional.ofNullable(getLastElementInSiblings(parents.peek()));
-            String restStartPoint = lastElement.orElseGet(() -> rootElement);
-            restFieldsPoints.push(restStartPoint);
-            currentNode = (BMap<BString, Object>) parseRestField();
+            Optional<String> lastElement = Optional.ofNullable(getLastElementInSiblings(xmlParserData.parents.peek()));
+            String restStartPoint = lastElement.orElseGet(() -> xmlParserData.rootElement);
+            xmlParserData.restFieldsPoints.push(restStartPoint);
+            currentNode = (BMap<BString, Object>) parseRestField(xmlParserData);
             return;
         }
 
+        Field currentField = xmlParserData.currentField;
         String fieldName = currentField.getFieldName();
         Object temp = currentNode.get(StringUtils.fromString(fieldName));
-        if (!siblings.containsKey(elemName)) {
-            siblings.put(elemName, false);
+        if (!xmlParserData.siblings.containsKey(elemName)) {
+            xmlParserData.siblings.put(elemName, false);
         } else if (!(temp instanceof BArray)) {
             BArray tempArray = ValueCreator.createArrayValue(definedAnyDataArrayType);
             tempArray.append(temp);
@@ -348,60 +345,60 @@ public class XmlParser {
 
         Type fieldType = currentField.getFieldType();
         if (fieldType.getTag() == TypeTags.RECORD_TYPE_TAG) {
-            parents.push(siblings);
-            siblings = new LinkedHashMap<>();
-            updateNextValue((RecordType) fieldType, fieldName);
-            attributeHierarchy.push(new HashMap<>(getAllAttributesInRecordType((RecordType) fieldType)));
+            xmlParserData.parents.push(xmlParserData.siblings);
+            xmlParserData.siblings = new LinkedHashMap<>();
+            updateNextValue((RecordType) fieldType, fieldName, xmlParserData);
+            xmlParserData.attributeHierarchy.push(new HashMap<>(getAllAttributesInRecordType((RecordType) fieldType)));
             validateNamespace(xmlStreamReader, (RecordType) fieldType);
-            handleAttributes(xmlStreamReader);
+            handleAttributes(xmlStreamReader, xmlParserData);
         } else if (fieldType.getTag() == TypeTags.ARRAY_TAG) {
             Type referredType = TypeUtils.getReferredType(((ArrayType) fieldType).getElementType());
             if (referredType.getTag() != TypeTags.RECORD_TYPE_TAG) {
                 return;
             }
-            parents.push(siblings);
-            siblings = new LinkedHashMap<>();
+            xmlParserData.parents.push(xmlParserData.siblings);
+            xmlParserData.siblings = new LinkedHashMap<>();
             RecordType elemType = (RecordType) referredType;
-            updateNextValue(elemType, fieldName);
-            attributeHierarchy.push(new HashMap<>(getAllAttributesInRecordType(elemType)));
+            updateNextValue(elemType, fieldName, xmlParserData);
+            xmlParserData.attributeHierarchy.push(new HashMap<>(getAllAttributesInRecordType(elemType)));
             validateNamespace(xmlStreamReader, elemType);
-            handleAttributes(xmlStreamReader);
+            handleAttributes(xmlStreamReader, xmlParserData);
         }
     }
 
-    public void updateNextValue(RecordType rootRecord, String fieldName) {
+    public void updateNextValue(RecordType rootRecord, String fieldName, XmlParserData xmlParserData) {
         BMap<BString, Object> nextValue = ValueCreator.createRecordValue(rootRecord);
-        fieldHierarchy.push(new HashMap<>(getAllFieldsInRecordType(rootRecord)));
-        restTypes.push(rootRecord.getRestFieldType());
+        xmlParserData.fieldHierarchy.push(new HashMap<>(getAllFieldsInRecordType(rootRecord, xmlParserData)));
+        xmlParserData.restTypes.push(rootRecord.getRestFieldType());
 
         Object temp = currentNode.get(StringUtils.fromString(fieldName));
         if (temp instanceof BArray) {
-            int arraySize = ((ArrayType) currentField.getFieldType()).getSize();
+            int arraySize = ((ArrayType) xmlParserData.currentField.getFieldType()).getSize();
             if (arraySize > ((BArray) temp).getLength() || arraySize == -1) {
                 ((BArray) temp).append(nextValue);
             }
         } else {
             currentNode.put(StringUtils.fromString(fieldName), nextValue);
         }
-        nodesStack.push(currentNode);
+        xmlParserData.nodesStack.push(currentNode);
         currentNode = nextValue;
     }
 
-    private Object parseRestField() {
+    private Object parseRestField(XmlParserData xmlParserData) {
         int next = xmlStreamReader.getEventType();
         BString currentFieldName = null;
         try {
-            while (!restFieldsPoints.isEmpty()) {
+            while (!xmlParserData.restFieldsPoints.isEmpty()) {
                 switch (next) {
                     case START_ELEMENT:
-                        currentFieldName = readElementRest(xmlStreamReader);
+                        currentFieldName = readElementRest(xmlStreamReader, xmlParserData);
                         break;
                     case END_ELEMENT:
-                        endElementRest(xmlStreamReader);
+                        endElementRest(xmlStreamReader, xmlParserData);
                         break;
                     case CDATA:
                     case CHARACTERS:
-                        readTextRest(xmlStreamReader, currentFieldName);
+                        readTextRest(xmlStreamReader, currentFieldName, xmlParserData);
                         break;
                     case PROCESSING_INSTRUCTION:
                     case COMMENT:
@@ -410,7 +407,7 @@ public class XmlParser {
                         break;
                 }
 
-                if (xmlStreamReader.hasNext() && !restFieldsPoints.isEmpty()) {
+                if (xmlStreamReader.hasNext() && !xmlParserData.restFieldsPoints.isEmpty()) {
                     next = xmlStreamReader.next();
                 } else {
                     break;
@@ -420,35 +417,36 @@ public class XmlParser {
             throw new RuntimeException(e);
         }
 
-        return nodesStack.pop();
+        return xmlParserData.nodesStack.pop();
     }
 
-    private BString readElementRest(XMLStreamReader xmlStreamReader) {
+    private BString readElementRest(XMLStreamReader xmlStreamReader, XmlParserData xmlParserData) {
         String elemName = xmlStreamReader.getName().getLocalPart();
         BString currentFieldName = StringUtils.fromString(elemName);
-        String lastElement = getLastElementInSiblings(siblings);
+        String lastElement = getLastElementInSiblings(xmlParserData.siblings);
 
-        if (!siblings.isEmpty() && lastElement != null && !siblings.getOrDefault(lastElement, true)) {
-            parents.push(siblings);
-            siblings = new LinkedHashMap<>();
-            siblings.put(elemName, false);
+        if (!xmlParserData.siblings.isEmpty() && lastElement != null
+                && !xmlParserData.siblings.getOrDefault(lastElement, true)) {
+            xmlParserData.parents.push(xmlParserData.siblings);
+            xmlParserData.siblings = new LinkedHashMap<>();
+            xmlParserData.siblings.put(elemName, false);
             BMap<BString, Object> temp =
                     (BMap<BString, Object>) currentNode.get(StringUtils.fromString(lastElement));
             temp.put(currentFieldName, ValueCreator.createMapValue(PredefinedTypes.TYPE_ANYDATA));
-            nodesStack.add(currentNode);
+            xmlParserData.nodesStack.add(currentNode);
             currentNode = temp;
             return currentFieldName;
-        } else if (!siblings.containsKey(elemName)) {
-            siblings.put(elemName, false);
+        } else if (!xmlParserData.siblings.containsKey(elemName)) {
+            xmlParserData.siblings.put(elemName, false);
             currentNode.put(currentFieldName, ValueCreator.createMapValue(PredefinedTypes.TYPE_ANYDATA));
-            nodesStack.add(currentNode);
+            xmlParserData.nodesStack.add(currentNode);
             return currentFieldName;
         }
 
-        parents.push(siblings);
-        siblings = new LinkedHashMap<>();
+        xmlParserData.parents.push(xmlParserData.siblings);
+        xmlParserData.siblings = new LinkedHashMap<>();
         Object currentElement = currentNode.get(StringUtils.fromString(elemName));
-        nodesStack.add(currentNode);
+        xmlParserData.nodesStack.add(currentNode);
 
         if (currentElement instanceof BArray) {
             return currentFieldName;
@@ -466,31 +464,33 @@ public class XmlParser {
         return currentFieldName;
     }
 
-    private void endElementRest(XMLStreamReader xmlStreamReader) {
+    private void endElementRest(XMLStreamReader xmlStreamReader, XmlParserData xmlParserData) {
         String elemName = xmlStreamReader.getName().getLocalPart();
-        if (siblings.containsKey(elemName) && !siblings.get(elemName)) {
-            siblings.put(elemName, true);
+        if (xmlParserData.siblings.containsKey(elemName) && !xmlParserData.siblings.get(elemName)) {
+            xmlParserData.siblings.put(elemName, true);
         }
 
-        if (parents.isEmpty() || !parents.peek().containsKey(xmlStreamReader.getName().getLocalPart())) {
+        if (xmlParserData.parents.isEmpty()
+                || !xmlParserData.parents.peek().containsKey(xmlStreamReader.getName().getLocalPart())) {
             return;
         }
 
-        currentNode = (BMap<BString, Object>) nodesStack.pop();
-        siblings = parents.pop();
-        if (siblings.containsKey(elemName) && restFieldsPoints.remove(elemName)) {
-            fieldHierarchy.pop();
-            restTypes.pop();
+        currentNode = (BMap<BString, Object>) xmlParserData.nodesStack.pop();
+        xmlParserData.siblings = xmlParserData.parents.pop();
+        if (xmlParserData.siblings.containsKey(elemName) && xmlParserData.restFieldsPoints.remove(elemName)) {
+            xmlParserData.fieldHierarchy.pop();
+            xmlParserData.restTypes.pop();
         }
-        siblings.put(elemName, true);
+        xmlParserData.siblings.put(elemName, true);
     }
 
-    private void readTextRest(XMLStreamReader xmlStreamReader, BString currentFieldName) {
+    private void readTextRest(XMLStreamReader xmlStreamReader, BString currentFieldName, XmlParserData xmlParserData) {
         BString text = StringUtils.fromString(xmlStreamReader.getText());
         if (currentNode.get(currentFieldName) instanceof BArray) {
-            ((BArray) currentNode.get(currentFieldName)).append(convertStringToRestExpType(text, restTypes.peek()));
+            ((BArray) currentNode.get(currentFieldName)).append(
+                    convertStringToRestExpType(text, xmlParserData.restTypes.peek()));
         } else {
-            currentNode.put(currentFieldName, convertStringToRestExpType(text, restTypes.peek()));
+            currentNode.put(currentFieldName, convertStringToRestExpType(text, xmlParserData.restTypes.peek()));
         }
     }
 
@@ -533,7 +533,7 @@ public class XmlParser {
         return attributes;
     }
 
-    private Map<String, Field> getAllFieldsInRecordType(RecordType recordType) {
+    private Map<String, Field> getAllFieldsInRecordType(RecordType recordType, XmlParserData xmlParserData) {
         BMap<BString, Object> annotations = recordType.getAnnotations();
         HashMap<String, String> modifiedNames = new LinkedHashMap<>();
         for (BString annotationKey : annotations.getKeys()) {
@@ -550,7 +550,7 @@ public class XmlParser {
         for (String key : recordFields.keySet()) {
             fields.put(modifiedNames.getOrDefault(key, key), recordFields.get(key));
         }
-        modifiedNamesHierarchy.add(modifiedNames);
+        xmlParserData.modifiedNamesHierarchy.add(modifiedNames);
         return fields;
     }
 
@@ -598,18 +598,18 @@ public class XmlParser {
         return namespace;
     }
 
-    private void handleAttributes(XMLStreamReader xmlStreamReader) {
+    private void handleAttributes(XMLStreamReader xmlStreamReader, XmlParserData xmlParserData) {
         for (int i = 0; i < xmlStreamReader.getAttributeCount(); i++) {
             QName qName = xmlStreamReader.getAttributeName(i);
             String prefix = qName.getPrefix();
             String attributeName = qName.getLocalPart();
 
             String fieldName = prefix.equals("") ? attributeName : prefix + ":" + attributeName;
-            Field field = attributeHierarchy.peek().remove(fieldName);
+            Field field = xmlParserData.attributeHierarchy.peek().remove(fieldName);
             if (field == null) {
-                field = fieldHierarchy.peek().remove(fieldName);
+                field = xmlParserData.fieldHierarchy.peek().remove(fieldName);
             } else {
-                fieldHierarchy.peek().remove(fieldName);
+                xmlParserData.fieldHierarchy.peek().remove(fieldName);
             }
 
             if (field == null) {
@@ -620,26 +620,18 @@ public class XmlParser {
                     StringUtils.fromString(xmlStreamReader.getAttributeValue(0)), field.getFieldType()));
         }
     }
+
+    static class XmlParserData {
+        private Stack<Object> nodesStack = new Stack<>();
+        private Stack<Map<String, Field>> fieldHierarchy = new Stack<>();
+        private Stack<Map<String, Field>> attributeHierarchy = new Stack<>();
+        private Stack<Map<String, String>> modifiedNamesHierarchy = new Stack<>();
+        private Stack<Type> restTypes = new Stack<>();
+        private Stack<String> restFieldsPoints = new Stack<>();
+        private RecordType rootRecord;
+        private Field currentField;
+        private String rootElement;
+        private Stack<LinkedHashMap<String, Boolean>> parents = new Stack<>();
+        private LinkedHashMap<String, Boolean> siblings = new LinkedHashMap<>();
+    }
 }
-
-// TODO: Fix below bugs
-// 1.
-// type RecB record {|
-//     record {|
-//         record {|
-//             // record {|
-//             //     int[] B;
-//             // |}[] C;
-//         |} B;
-//     |} A;
-// |};
-
-// public function main() returns error? {
-//     string xmlStr2 = "<Data><A><D><C><D>1</D><D>2</D></C><C><D>3</D><D>4</D></C></D></A></Data>";
-//     RecB rec2 = check fromXmlStringWithType(xmlStr2);
-//     io:println(rec2);
-// }
-
-// 2. Handle - Expected type field containing array type with element count like int[3];
-
-//
