@@ -5,6 +5,7 @@ import io.ballerina.runtime.api.values.BMap;
 import io.ballerina.runtime.api.values.BStream;
 import io.ballerina.runtime.api.values.BString;
 import io.ballerina.runtime.api.values.BTypedesc;
+import io.ballerina.runtime.api.values.BXml;
 import io.ballerina.stdlib.data.utils.DataUtils;
 
 import java.io.StringReader;
@@ -24,7 +25,7 @@ public class Native {
         return null;
     }
 
-    public static Object fromXmlWithType(Object xml, BMap<BString, Object> map, BTypedesc typed) {
+    public static Object fromXmlWithType(BXml xml, BMap<BString, Object> map, BTypedesc typed) {
         return null;
     }
 

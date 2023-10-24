@@ -308,6 +308,24 @@ function testXmlStringToRecord25() returns error? {
     test:assertEquals(rec1.get("c").D.name, "Clark");
 }
 
+type RecRest6 record {|
+    int A;
+    int[]...;
+|};
+
+public function main() returns error? {
+    string xmlStr = string `
+    <Data>
+        <A>1</A>
+        <B>2</B>
+        <B>3</B>
+    </Data>`;
+    RecRest6 rec = check fromXmlStringWithType(xmlStr);
+    test:assertEquals(rec.A, 1);
+    test:assertEquals((<int[]>rec.get("B"))[0], 2);
+    test:assertEquals((<int[]>rec.get("B"))[1], 3);
+}
+
 // test namespace and attributes annotations
 
 type RecAtt1 record {|
@@ -335,10 +353,6 @@ type RecAtt2 record {|
     RecNs1[] A;
 |};
 
-@Namespace {
-    prefix: "ns1",
-    uri: "NS1"
-}
 type RecNs1 record {|
     @Attribute
     string ns1\:data;
@@ -439,4 +453,17 @@ function testXmlStringToRecord41() returns error? {
     test:assertEquals(rec2.A.length(), 2);
     test:assertEquals(rec2.A[0], 1);
     test:assertEquals(rec2.A[1], 2);
+}
+
+// Negative cases
+type DataN1 record {|
+    string A;
+|};
+
+
+@test:Config{}
+function testXmlStringToRecordNegative1() {
+    string xmlStr1 = "<Data><B></B></Data>";
+    DataN1|error rec1 = trap fromXmlStringWithType(xmlStr1);
+    test:assertEquals((<error>rec1).message(), "failed to parse xml: Required field A not present in XML");
 }

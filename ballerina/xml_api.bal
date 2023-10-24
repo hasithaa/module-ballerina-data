@@ -40,7 +40,7 @@ public type NamespaceConfig record {|
 # The annotation is used to specify the namespace's prefix and URI of the XML element.
 # In the XML string-record conversion, this annotation can be used to add XML namespace using the `xml:toXML` API and
 # validate the the XML namespace with record in the `xml:fromXmlString` API.
-public annotation NamespaceConfig Namespace on type;
+public annotation NamespaceConfig Namespace on type, record field;
 
 # The annotation is used to denote the field that is considered an attribute.
 # In the XML string-record conversion, this annotation can be used to add XML attribute using the `xml:toXML` API and
@@ -53,7 +53,7 @@ public annotation Attribute on record field;
 # + options - Options to be used for filtering in the projection
 # + t - Target type to be used for filtering in the projection
 # + return - On success, returns the given target type value, else returns an `xml:Error` 
-public isolated function fromXmlWithType(json v, Options options = {}, typedesc<anydata> t = <>)
+public isolated function fromXmlWithType(xml v, Options options = {}, typedesc<anydata> t = <>)
         returns t|ConversionError = @java:Method {'class: "io.ballerina.stdlib.data.xml.Native"} external;
 
 # A Parser a xml string value with projection

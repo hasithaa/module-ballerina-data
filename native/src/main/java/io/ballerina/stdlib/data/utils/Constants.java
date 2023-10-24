@@ -34,8 +34,6 @@ public class Constants {
 
     private Constants() {}
 
-    public static final String OPTIONS_ATTRIBUTE_PREFIX = "attributePrefix";
-    public static final String OPTIONS_PRESERVE_NS = "preserveNamespaces";
     public static final String UNDERSCORE = "_";
     public static final String COLON = ":";
     public static final MapType JSON_MAP_TYPE = TypeCreator.createMapType(PredefinedTypes.TYPE_JSON);
@@ -45,8 +43,6 @@ public class Constants {
     public static final BString URI = StringUtils.fromString("uri");
     public static final BString PREFIX = StringUtils.fromString("prefix");
     public static final String ATTRIBUTE = "Attribute";
-    public static final String SKIP_ATTRIBUTE = "skip";
-    public static final String ADD_IF_HAS_ANNOTATION = "add";
     public static final int DEFAULT_TYPE_FLAG = 2049;
     public static final String NAME = "Name";
     public static final BString VALUE = StringUtils.fromString("value");
